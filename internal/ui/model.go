@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"image"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rusilkoirala/pokedexcli/internal/pokeapi"
 	"github.com/rusilkoirala/pokedexcli/internal/pokedex"
@@ -18,6 +20,7 @@ type Model struct {
 	loading      bool
 	cursor       int
 	page         int
+	spriteImage  image.Image
 }
 
 const (

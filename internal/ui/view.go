@@ -3,8 +3,10 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"image"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/qeesung/image2ascii/convert"
 )
 
 var (
@@ -46,6 +48,23 @@ var (
 		"fairy":    "#EE99AC",
 	}
 )
+
+// convertImageToASCII converts an image to colored ASCII art
+func convertImageToASCII(img image.Image) string {
+	if img == nil {
+		return "No sprite available"
+	}
+	
+	// Create converter with options
+	convertOptions := convert.DefaultOptions
+	convertOptions.FixedWidth = 40
+	convertOptions.FixedHeight = 20
+	convertOptions.Colored = true
+	convertOptions.Reversed = false
+	
+	converter := convert.NewImageConverter()
+	return converter.Image2ASCIIString(img, &convertOptions)
+}
 
 func (m Model) View() string {
 	var s strings.Builder
@@ -122,41 +141,78 @@ func (m Model) renderDetail() string {
 	}
 
 	p := m.selectedPoke
-	var s strings.Builder
-
-	s.WriteString(fmt.Sprintf("%s (#%d)\n\n", strings.ToUpper(p.Name), p.ID))
-
-	s.WriteString("Types: ")
+	
+	// Title
+	title := fmt.Sprintf("%s (#%d)", strings.ToUpper(p.Name), p.ID)
+	
+	// Left column - Pokemon info
+	var leftCol strings.Builder
+	
+	// Types
+	leftCol.WriteString("Types: ")
 	for i, t := range p.Types {
 		color := typeColors[t.Type.Name]
 		typeStyle := lipgloss.NewStyle().
 			Foreground(lipgloss.Color(color)).
 			Bold(true)
-
-		s.WriteString(typeStyle.Render(t.Type.Name))
+		leftCol.WriteString(typeStyle.Render(t.Type.Name))
 		if i < len(p.Types)-1 {
-			s.WriteString(", ")
+			leftCol.WriteString(", ")
 		}
 	}
-	s.WriteString("\n\n")
+	leftCol.WriteString("\n\n")
 
-	s.WriteString(fmt.Sprintf("Height: %.1fm Weight: %.1fkg XP: %d\n\n",
-		float64(p.Height)/10, float64(p.Weight)/10, p.BaseExperience))
+	// Physical info
+	leftCol.WriteString(fmt.Sprintf("Height: %.1fm\n", float64(p.Height)/10))
+	leftCol.WriteString(fmt.Sprintf("Weight: %.1fkg\n", float64(p.Weight)/10))
+	leftCol.WriteString(fmt.Sprintf("Base XP: %d\n\n", p.BaseExperience))
 
-	s.WriteString("Stats:\n")
+	// Stats
+	leftCol.WriteString("Stats:\n")
 	for _, stat := range p.Stats {
 		bar := strings.Repeat("█", stat.BaseStat/10)
-		s.WriteString(fmt.Sprintf("  %-15s %3d %s\n", stat.Stat.Name+":", stat.BaseStat, bar))
+		leftCol.WriteString(fmt.Sprintf("  %-12s %3d %s\n", stat.Stat.Name+":", stat.BaseStat, bar))
 	}
 
-	s.WriteString("\n")
-	if m.pokedex.Has(p.Name) {
-		s.WriteString("Already Caught\n")
+	// Right column - ASCII sprite
+	var rightCol string
+	if m.spriteImage != nil {
+		rightCol = convertImageToASCII(m.spriteImage)
 	} else {
-		s.WriteString(helpStyle.Render("Press 'c' to catch this pokemon! \n"))
+		rightCol = "\n\n   No sprite\n   available\n"
 	}
-	s.WriteString("\n" + helpStyle.Render("b: back"))
-	return s.String()
+
+	// Style the columns
+	leftStyle := lipgloss.NewStyle().
+		Width(50).
+		Align(lipgloss.Left).
+		PaddingRight(2)
+
+	rightStyle := lipgloss.NewStyle().
+		Width(40).
+		Align(lipgloss.Center)
+
+	// Join columns side by side
+	content := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		leftStyle.Render(leftCol.String()),
+		rightStyle.Render(rightCol),
+	)
+
+	// Build final output
+	var output strings.Builder
+	output.WriteString(title + "\n\n")
+	output.WriteString(content + "\n\n")
+
+	// Catch status
+	if m.pokedex.Has(p.Name) {
+		output.WriteString("✓ Already caught!\n")
+	} else {
+		output.WriteString(helpStyle.Render("Press 'c' to catch this Pokemon!\n"))
+	}
+
+	output.WriteString("\n" + helpStyle.Render("b: back"))
+	return output.String()
 }
 
 func (m Model) renderMyPokedex() string {

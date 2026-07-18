@@ -3,6 +3,9 @@ package pokeapi
 import (
 	"encoding/json"
 	"fmt"
+	"image"
+	_ "image/png"
+	_ "image/jpeg"
 	"io"
 	"net/http"
 	"time"
@@ -28,6 +31,11 @@ type Pokemon struct {
 	BaseExperience int           `json:"base_experience"`
 	Types          []PokemonType `json:"types"`
 	Stats          []PokemonStat `json:"stats"`
+	Sprites        PokemonSprites `json:"sprites"`
+}
+
+type PokemonSprites struct {
+	FrontDefault string `json:"front_default"`
 }
 
 type PokemonType struct {
@@ -105,4 +113,23 @@ func (c *Client) GetPokemon(name string) (*Pokemon, error) {
 
 	}
 	return &pokemon, nil
+}
+
+// to download sprite
+func (c *Client) DownloadSprite(url string) (image.Image, error) {
+	if url == "" {
+		return nil, fmt.Errorf("no sprite url")
+	}
+
+	resp, err := c.httpClient.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	img, _, err := image.Decode(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return img, nil
 }

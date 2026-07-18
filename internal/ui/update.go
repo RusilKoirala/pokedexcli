@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"image"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rusilkoirala/pokedexcli/internal/pokeapi"
@@ -13,6 +14,7 @@ type pokemonListMsg struct {
 
 type pokemonDetailMsg struct {
 	pokemon *pokeapi.Pokemon
+	sprite  image.Image
 }
 
 type errorMsg struct {
@@ -71,6 +73,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case pokemonDetailMsg:
 		m.selectedPoke = msg.pokemon
+		m.spriteImage = msg.sprite
 		m.loading = false
 
 	case errorMsg:
@@ -160,6 +163,15 @@ func (m Model) loadPokemonDetail(name string) tea.Cmd {
 		if err != nil {
 			return errorMsg{err}
 		}
-		return pokemonDetailMsg{pokemon}
+
+		var sprite image.Image
+		if pokemon.Sprites.FrontDefault != "" {
+			sprite, _ = m.api.DownloadSprite(pokemon.Sprites.FrontDefault)
+		}
+
+		return pokemonDetailMsg{
+			pokemon: pokemon,
+			sprite:  sprite,
+		}
 	}
 }
