@@ -5,39 +5,13 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rusilkoirala/pokedexcli/internal/ui"
 )
 
-type model struct{}
-
-func (m model) Init() tea.Cmd {
-	return nil
-}
-
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q":
-			return m, tea.Quit
-		}
-	}
-
-	return m, nil
-}
-
-func (m model) View() string {
-	return `
-Welcome to Pokedex!
-
-Press q to quit.
-`
-}
-
 func main() {
-	p := tea.NewProgram(model{})
-
+	p := tea.NewProgram(ui.NewModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println("Error: %v\n", err)
 		os.Exit(1)
 	}
 }
