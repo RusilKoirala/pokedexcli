@@ -580,9 +580,9 @@ func (m Model) renderBattle() string {
 		s.WriteString(logBox + "\n\n")
 	}
 	
-	// Action boxes at bottom
+	// Move boxes at bottom
 	if !m.currentBattle.IsOver {
-		s.WriteString(m.renderBattleActions())
+		s.WriteString(m.renderMoveBoxes())
 	} else {
 		s.WriteString(helpStyle.Render("  Press 'b' to return"))
 	}

@@ -49,7 +49,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "q":
 			if m.currentView == encounterView {
-
 				return m, nil
 			}
 			m.pokedex.Save()
@@ -89,15 +88,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "left", "h":
 			if m.currentView == battleView {
-				if m.battleAction > 0 {
-					m.battleAction--
+				if m.selectedMoveIndex > 0 {
+					m.selectedMoveIndex--
 				}
 			}
 
 		case "right", "l":
-			if m.currentView == battleView {
-				if m.battleAction < 2 { // 3 actions: Attack, Catch, Run
-					m.battleAction++
+			if m.currentView == battleView && m.currentBattle != nil {
+				maxMoves := len(m.currentBattle.PlayerPokemon.Moves) - 1
+				if m.selectedMoveIndex < maxMoves {
+					m.selectedMoveIndex++
 				}
 			}
 
@@ -109,7 +109,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "b", "esc":
 			if m.currentView == encounterView && m.encounterState == choosing {
-				// Start battle - show Pokemon selection
 				m.currentView = pokemonSelectView
 				m.cursor = 0
 				m.pokemonList = m.pokedex.List()
@@ -119,7 +118,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				return m, nil
 			} else if m.currentView == battleView {
-				// Back from battle
 				return m.handleBack()
 			}
 			return m.handleBack()
@@ -129,6 +127,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m.handleCatch()
 			} else if m.currentView == encounterView && m.encounterState == choosing {
 				return m.handleCatchWild()
+			} else if m.currentView == battleView {
+				return m, m.executeBattleCatch()
 			}
 
 		case "e":
@@ -139,11 +139,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "r":
 			if m.currentView == encounterView && m.encounterState == choosing {
 				return m.handleRun()
+			} else if m.currentView == battleView {
+				m.message = "You ran away!"
+				m.currentView = exploreView
+				m.currentBattle = nil
 			}
 
 		case "i":
 			if m.currentView == encounterView && m.encounterState == choosing {
-
 				m.message = "Inspecting Pokemon..."
 			}
 
@@ -184,7 +187,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.playerBattleSprite = msg.playerSprite
 		m.enemyBattleSprite = msg.enemySprite
 		m.currentView = battleView
-		m.battleAction = actionAttack
+		m.selectedMoveIndex = 0
 		m.loading = false
 		m.battleLog = "Battle started!"
 
@@ -192,7 +195,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.battleLog = msg.message
 		m.loading = false
 
-		// Check if battle is over
 		if m.currentBattle != nil && m.currentBattle.IsOver {
 			if m.currentBattle.PlayerWon {
 				m.message = "You won the battle!"
@@ -256,7 +258,6 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 	case exploreView:
 		m.currentLocation = m.cursor
 	}
-	// Stay in explore view
 	return m, nil
 }
 
@@ -270,14 +271,13 @@ func (m Model) handleBack() (tea.Model, tea.Cmd) {
 	case detailView:
 		m.currentView = listView
 		m.cursor = 0
-	
+
 	case pokemonSelectView:
 		m.currentView = encounterView
 		m.encounterState = choosing
 		m.cursor = 0
-	
+
 	case battleView:
-		// Return to explore after battle
 		m.currentView = exploreView
 		m.currentBattle = nil
 		m.cursor = 0
@@ -294,7 +294,7 @@ func (m Model) handleBack() (tea.Model, tea.Cmd) {
 
 func (m Model) handleCatch() (tea.Model, tea.Cmd) {
 	if m.pokedex.Has(m.selectedPoke.Name) {
-		m.message = fmt.Sprint("%s is already in your Pokedex!!", m.selectedPoke.Name)
+		m.message = fmt.Sprintf("%s is already in your Pokedex!!", m.selectedPoke.Name)
 	} else if m.pokedex.Catch(m.selectedPoke.Name) {
 		m.message = fmt.Sprintf("YAY you caught %s!", m.selectedPoke.Name)
 		m.pokedex.Save()
@@ -364,9 +364,7 @@ func (m Model) loadEncounter(pokemonID int) tea.Cmd {
 
 func (m Model) calculateCatchRate() float64 {
 	baseCatchRate := 0.4
-
 	dexBonus := float64(m.pokedex.Count()) * 0.01
-
 	total := baseCatchRate + dexBonus
 
 	if total > 0.9 {
@@ -438,7 +436,41 @@ func (m Model) handleExplore() (tea.Model, tea.Cmd) {
 	return m, m.loadEncounter(pokemonID)
 }
 
-// load player's pokemon for battle
+// Fetch moves from API
+func (m Model) loadMovesForPokemon(pokemon *pokeapi.Pokemon) []*battle.Move {
+	moves := []*battle.Move{}
+
+	// Take first 4 moves from pokemon
+	maxMoves := 4
+	if len(pokemon.Moves) < maxMoves {
+		maxMoves = len(pokemon.Moves)
+	}
+
+	for i := 0; i < maxMoves; i++ {
+		moveName := pokemon.Moves[i].Move.Name
+
+		// Fetch move details from API
+		move, err := m.api.GetMove(moveName)
+		if err == nil && move.Power > 0 {
+			battleMove := battle.NewMove(
+				move.Name,
+				move.Type.Name,
+				move.Power,
+				move.Accuracy,
+				move.PP,
+			)
+			moves = append(moves, battleMove)
+		}
+	}
+
+	// If no moves found, use defaults
+	if len(moves) == 0 {
+		moves = battle.GetDefaultMoves()
+	}
+
+	return moves
+}
+
 func (m Model) loadPlayerPokemonForBattle(name string) tea.Cmd {
 	return func() tea.Msg {
 		playerPokemon, err := m.api.GetPokemon(name)
@@ -446,19 +478,21 @@ func (m Model) loadPlayerPokemonForBattle(name string) tea.Cmd {
 			return errorMsg{err}
 		}
 
-		// Download player sprite (back sprite - not available, use front)
 		var playerSprite image.Image
 		if playerPokemon.Sprites.FrontDefault != "" {
 			playerSprite, _ = m.api.DownloadSprite(playerPokemon.Sprites.FrontDefault)
 		}
 
-		// Download enemy sprite (front sprite - already have)
 		var enemySprite image.Image
 		if m.encounterPokemon.Sprites.FrontDefault != "" {
 			enemySprite, _ = m.api.DownloadSprite(m.encounterPokemon.Sprites.FrontDefault)
 		}
 
-		newBattle := battle.NewBattle(playerPokemon, m.encounterPokemon)
+		// Load moves for both Pokemon
+		playerMoves := m.loadMovesForPokemon(playerPokemon)
+		enemyMoves := m.loadMovesForPokemon(m.encounterPokemon)
+
+		newBattle := battle.NewBattle(playerPokemon, m.encounterPokemon, playerMoves, enemyMoves)
 
 		return battleStartMsg{
 			battle:       newBattle,
@@ -468,7 +502,6 @@ func (m Model) loadPlayerPokemonForBattle(name string) tea.Cmd {
 	}
 }
 
-// execute attack in battle
 func (m Model) executeBattleAttack() tea.Cmd {
 	return func() tea.Msg {
 		if m.currentBattle == nil {
@@ -477,17 +510,16 @@ func (m Model) executeBattleAttack() tea.Cmd {
 			}
 		}
 
-		// player attack himmm
-		playerMsg := m.currentBattle.PlayerAttack()
+		// Player attack with selected move
+		playerMsg := m.currentBattle.PlayerAttack(m.selectedMoveIndex)
 
-		// check if battle over
 		if m.currentBattle.IsOver {
 			return battleActionMsg{
 				message: playerMsg,
 			}
 		}
 
-		// enemy attackk
+		// Enemy attack
 		enemyMsg := m.currentBattle.EnemyAttack()
 
 		return battleActionMsg{
@@ -496,7 +528,6 @@ func (m Model) executeBattleAttack() tea.Cmd {
 	}
 }
 
-// execute catch attempt in battle
 func (m Model) executeBattleCatch() tea.Cmd {
 	return func() tea.Msg {
 		if m.currentBattle == nil {
@@ -522,20 +553,10 @@ func (m Model) executeBattleCatch() tea.Cmd {
 	}
 }
 
-// handles battle actions (ATTACK , CATCH , RUNNN)
 func (m Model) handleBattleAction() (tea.Model, tea.Cmd) {
 	if m.currentBattle == nil || m.currentBattle.IsOver {
 		return m, nil
 	}
-	switch m.battleAction {
-	case actionAttack:
-		return m, m.executeBattleAttack()
-	case actionCatch:
-		return m, m.executeBattleCatch()
-	case actionRun:
-		m.message = "You ran away!"
-		m.currentView = exploreView
-		m.currentBattle = nil
-	}
-	return m, nil
+
+	return m, m.executeBattleAttack()
 }

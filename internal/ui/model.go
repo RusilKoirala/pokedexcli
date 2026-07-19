@@ -42,7 +42,6 @@ const (
 	actionItems
 )
 
-type Model struct {
 	api          *pokeapi.Client
 	pokedex      *pokedex.Pokedex
 	currentView  view
@@ -62,7 +61,7 @@ type Model struct {
 	totalEncounters  int
 
 	currentBattle        *battle.Battle
-	battleAction         battleAction
+	selectedMoveIndex    int
 	selectedPokemonIndex int
 	battleLog            string
 	playerBattleSprite   image.Image
@@ -72,14 +71,15 @@ type Model struct {
 func NewModel() Model {
 	dex, _ := pokedex.Load()
 	return Model{
-		api:             pokeapi.NewClient(),
-		pokedex:         dex,
-		currentView:     menuView,
-		cursor:          0,
-		page:            0,
-		currentLocation: 0,
-		shakeCount:      0,
-		totalEncounters: 0,
+		api:               pokeapi.NewClient(),
+		pokedex:           dex,
+		currentView:       menuView,
+		cursor:            0,
+		page:              0,
+		currentLocation:   0,
+		shakeCount:        0,
+		totalEncounters:   0,
+		selectedMoveIndex: 0,
 	}
 }
 

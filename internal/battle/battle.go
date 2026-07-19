@@ -7,58 +7,6 @@ import (
 	"github.com/rusilkoirala/pokedexcli/internal/pokeapi"
 )
 
-type Move struct {
-	Name     string
-	Type     string
-	Power    int
-	Accuracy int
-	PP       int
-	MaxPP    int
-}
-
-var CommonMoves = map[string]*Move{
-	"tackle":        NewMove("Tackle", "normal", 40, 100, 35),
-	"scratch":       NewMove("Scratch", "normal", 40, 100, 35),
-	"quick-attack":  NewMove("Quick Attack", "normal", 40, 100, 30),
-	"thunder-shock": NewMove("Thunder Shock", "electric", 40, 100, 30),
-	"thunderbolt":   NewMove("Thunderbolt", "electric", 90, 100, 15),
-	"water-gun":     NewMove("Water Gun", "water", 40, 100, 25),
-	"ember":         NewMove("Ember", "fire", 40, 100, 25),
-	"vine-whip":     NewMove("Vine Whip", "grass", 45, 100, 25),
-	"bite":          NewMove("Bite", "dark", 60, 100, 25),
-	"iron-tail":     NewMove("Iron Tail", "steel", 100, 75, 15),
-}
-
-func GetDefaultMoves() []*Move {
-	return []*Move{
-		NewMove("Tackle", "normal", 40, 100, 35),
-		NewMove("Quick Attack", "normal", 40, 100, 30),
-		NewMove("Scratch", "normal", 40, 100, 35),
-		NewMove("Pound", "normal", 40, 100, 35),
-	}
-}
-
-func NewMove(name, moveType string, power, accuracy, maxPP int) *Move {
-	return &Move{
-		Name:     name,
-		Type:     moveType,
-		Power:    power,
-		Accuracy: accuracy,
-		PP:       maxPP,
-		MaxPP:    maxPP,
-	}
-}
-
-func (m *Move) CanUse() bool {
-	return m.PP > 0
-}
-
-func (m *Move) Use() {
-	if m.PP > 0 {
-		m.PP--
-	}
-}
-
 type Battle struct {
 	PlayerPokemon *BattlePokemon
 	WildPokemon   *BattlePokemon
@@ -74,13 +22,12 @@ type BattlePokemon struct {
 	CurrentHP int
 	MaxHP     int
 	Level     int
+	Moves     []*Move
 }
 
-// newBattle creates a new battle instance
-func NewBattle(playerPokemon, wildPokemon *pokeapi.Pokemon) *Battle {
-	// calculate HP based on base stats
-	playerHP := calculateHP(playerPokemon, 10) // player Pokemon at level 10 for now
-	wildLevel := rand.Intn(6) + 5              // wild Pokemon level 5-10
+func NewBattle(playerPokemon, wildPokemon *pokeapi.Pokemon, playerMoves, wildMoves []*Move) *Battle {
+	playerHP := calculateHP(playerPokemon, 10)
+	wildLevel := rand.Intn(6) + 5
 	wildHP := calculateHP(wildPokemon, wildLevel)
 
 	return &Battle{
@@ -89,12 +36,14 @@ func NewBattle(playerPokemon, wildPokemon *pokeapi.Pokemon) *Battle {
 			CurrentHP: playerHP,
 			MaxHP:     playerHP,
 			Level:     10,
+			Moves:     playerMoves,
 		},
 		WildPokemon: &BattlePokemon{
 			Pokemon:   wildPokemon,
 			CurrentHP: wildHP,
 			MaxHP:     wildHP,
 			Level:     wildLevel,
+			Moves:     wildMoves,
 		},
 		Turn:         1,
 		IsPlayerTurn: true,
@@ -104,31 +53,48 @@ func NewBattle(playerPokemon, wildPokemon *pokeapi.Pokemon) *Battle {
 	}
 }
 
-// calculateHP calculates HP based on base stat and level
 func calculateHP(p *pokeapi.Pokemon, level int) int {
-	// Find HP stat
-	hpStat := 50 // default
+	hpStat := 50
 	for _, stat := range p.Stats {
 		if stat.Stat.Name == "hp" {
 			hpStat = stat.BaseStat
 			break
 		}
 	}
-
-	// Simple formula: HP = base HP + (level * 2)
 	return hpStat + (level * 2)
 }
 
-// PlayerAttack processes player's attack
-func (b *Battle) PlayerAttack() string {
+func (b *Battle) PlayerAttack(moveIndex int) string {
 	if !b.IsPlayerTurn || b.IsOver {
 		return ""
 	}
 
-	damage := b.calculateDamage(b.PlayerPokemon, b.WildPokemon)
+	if moveIndex >= len(b.PlayerPokemon.Moves) || moveIndex < 0 {
+		return "Invalid move!"
+	}
+
+	move := b.PlayerPokemon.Moves[moveIndex]
+
+	if !move.CanUse() {
+		return fmt.Sprintf("%s has no PP left!", move.Name)
+	}
+
+	move.Use()
+
+	// Get defender types
+	defenderTypes := []string{}
+	for _, t := range b.WildPokemon.Pokemon.Types {
+		defenderTypes = append(defenderTypes, t.Type.Name)
+	}
+
+	damage, effectiveness := b.calculateDamageWithType(b.PlayerPokemon, b.WildPokemon, move, defenderTypes)
 	b.WildPokemon.CurrentHP -= damage
 
-	message := fmt.Sprintf("%s attacks! Dealt %d damage!", b.PlayerPokemon.Pokemon.Name, damage)
+	message := fmt.Sprintf("%s used %s! Dealt %d damage!", b.PlayerPokemon.Pokemon.Name, move.Name, damage)
+
+	if effectiveness != 1.0 {
+		message += "\n" + GetEffectivenessMessage(effectiveness)
+	}
 
 	if b.WildPokemon.CurrentHP <= 0 {
 		b.WildPokemon.CurrentHP = 0
@@ -142,16 +108,40 @@ func (b *Battle) PlayerAttack() string {
 	return message
 }
 
-// EnemyAttack processes enemy's attack
 func (b *Battle) EnemyAttack() string {
 	if b.IsPlayerTurn || b.IsOver {
 		return ""
 	}
 
-	damage := b.calculateDamage(b.WildPokemon, b.PlayerPokemon)
+	// Enemy picks random move with PP
+	validMoves := []*Move{}
+	for _, move := range b.WildPokemon.Moves {
+		if move.CanUse() {
+			validMoves = append(validMoves, move)
+		}
+	}
+
+	if len(validMoves) == 0 {
+		return "Wild Pokemon has no moves left!"
+	}
+
+	move := validMoves[rand.Intn(len(validMoves))]
+	move.Use()
+
+	// Get defender types
+	defenderTypes := []string{}
+	for _, t := range b.PlayerPokemon.Pokemon.Types {
+		defenderTypes = append(defenderTypes, t.Type.Name)
+	}
+
+	damage, effectiveness := b.calculateDamageWithType(b.WildPokemon, b.PlayerPokemon, move, defenderTypes)
 	b.PlayerPokemon.CurrentHP -= damage
 
-	message := fmt.Sprintf("Wild %s attacks! Dealt %d damage!", b.WildPokemon.Pokemon.Name, damage)
+	message := fmt.Sprintf("Wild %s used %s! Dealt %d damage!", b.WildPokemon.Pokemon.Name, move.Name, damage)
+
+	if effectiveness != 1.0 {
+		message += "\n" + GetEffectivenessMessage(effectiveness)
+	}
 
 	if b.PlayerPokemon.CurrentHP <= 0 {
 		b.PlayerPokemon.CurrentHP = 0
@@ -165,50 +155,48 @@ func (b *Battle) EnemyAttack() string {
 	return message
 }
 
-// calculateDamage calculates damage from attacker to defender
-func (b *Battle) calculateDamage(attacker, defender *BattlePokemon) int {
-	// Get attack and defense stats
+func (b *Battle) calculateDamageWithType(attacker, defender *BattlePokemon, move *Move, defenderTypes []string) (int, float64) {
 	attack := b.getStat(attacker.Pokemon, "attack")
 	defense := b.getStat(defender.Pokemon, "defense")
 
-	// Simple damage formula
-	baseDamage := (attack * 2) - (defense / 2)
+	// Base damage from move power
+	baseDamage := (attack*move.Power)/50 - (defense / 4)
 
-	// Add randomness (85% - 100%)
-	randomFactor := 0.85 + (rand.Float64() * 0.15)
-	damage := int(float64(baseDamage) * randomFactor)
-
-	// Minimum damage of 5
-	if damage < 5 {
-		damage = 5
+	// Type effectiveness
+	totalEffectiveness := 1.0
+	for _, defType := range defenderTypes {
+		totalEffectiveness *= GetTypeEffectiveness(move.Type, defType)
 	}
 
-	return damage
+	// Apply effectiveness
+	damage := int(float64(baseDamage) * totalEffectiveness)
+
+	// Randomness (85%-100%)
+	randomFactor := 0.85 + (rand.Float64() * 0.15)
+	damage = int(float64(damage) * randomFactor)
+
+	if damage < 1 {
+		damage = 1
+	}
+
+	return damage, totalEffectiveness
 }
 
-// getStat gets a specific stat value
 func (b *Battle) getStat(p *pokeapi.Pokemon, statName string) int {
 	for _, stat := range p.Stats {
 		if stat.Stat.Name == statName {
 			return stat.BaseStat
 		}
 	}
-	return 50 // default
+	return 50
 }
 
-// GetCatchRate returns catch rate based on HP remaining
 func (b *Battle) GetCatchRate() float64 {
 	if b.WildPokemon.CurrentHP == 0 {
-		return 0.95 // Very high if fainted
+		return 0.95
 	}
 
 	hpPercent := float64(b.WildPokemon.CurrentHP) / float64(b.WildPokemon.MaxHP)
-
-	// Lower HP = higher catch rate
-	// 100% HP = 40% catch
-	// 50% HP = 60% catch
-	// 25% HP = 75% catch
-	// 10% HP = 90% catch
 	catchRate := 0.4 + (0.5 * (1 - hpPercent))
 
 	return catchRate
