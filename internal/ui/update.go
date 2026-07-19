@@ -446,9 +446,25 @@ func (m Model) loadPlayerPokemonForBattle(name string) tea.Cmd {
 			return errorMsg{err}
 		}
 
+		// Download player sprite (back sprite - not available, use front)
+		var playerSprite image.Image
+		if playerPokemon.Sprites.FrontDefault != "" {
+			playerSprite, _ = m.api.DownloadSprite(playerPokemon.Sprites.FrontDefault)
+		}
+
+		// Download enemy sprite (front sprite - already have)
+		var enemySprite image.Image
+		if m.encounterPokemon.Sprites.FrontDefault != "" {
+			enemySprite, _ = m.api.DownloadSprite(m.encounterPokemon.Sprites.FrontDefault)
+		}
+
 		newBattle := battle.NewBattle(playerPokemon, m.encounterPokemon)
 
-		return battleStartMsg{battle: newBattle}
+		return battleStartMsg{
+			battle:       newBattle,
+			playerSprite: playerSprite,
+			enemySprite:  enemySprite,
+		}
 	}
 }
 

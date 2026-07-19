@@ -91,6 +91,21 @@ func convertImageToASCII(img image.Image) string {
 	return converter.Image2ASCIIString(img, &convertOptions)
 }
 
+func convertImageToASCIISmall(img image.Image) string {
+	if img == nil {
+		return "No sprite"
+	}
+
+	convertOptions := convert.DefaultOptions
+	convertOptions.FixedWidth = 20
+	convertOptions.FixedHeight = 10
+	convertOptions.Colored = true
+	convertOptions.Reversed = false
+
+	converter := convert.NewImageConverter()
+	return converter.Image2ASCIIString(img, &convertOptions)
+}
+
 func (m Model) View() string {
 	var s strings.Builder
 
@@ -475,76 +490,103 @@ func (m Model) renderBattle() string {
 	}
 
 	var s strings.Builder
+	s.WriteString("\n")
 
-	// Wild Pokemon (top section)
-	wildName := strings.ToUpper(m.currentBattle.WildPokemon.Pokemon.Name)
-	wildLevel := fmt.Sprintf("Lv %d", m.currentBattle.WildPokemon.Level)
-
-	wildHeader := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FF6B6B")).
-		Bold(true).
-		Render(fmt.Sprintf("  Wild %s  %s", wildName, wildLevel))
-
-	s.WriteString("\n" + wildHeader + "\n")
-
-	// Wild Pokemon HP bar
-	wildHPBar := renderHPBar(
+	// Top row: Enemy Pokemon (right aligned)
+	enemyName := strings.ToUpper(m.currentBattle.WildPokemon.Pokemon.Name)
+	enemyLevel := fmt.Sprintf("Lv %d", m.currentBattle.WildPokemon.Level)
+	
+	// Enemy info and sprite side by side
+	enemyInfo := fmt.Sprintf("%s %s\nHP: %d/%d\n%s",
+		enemyName,
+		enemyLevel,
 		m.currentBattle.WildPokemon.CurrentHP,
 		m.currentBattle.WildPokemon.MaxHP,
-		40,
+		renderHPBar(m.currentBattle.WildPokemon.CurrentHP, m.currentBattle.WildPokemon.MaxHP, 20),
 	)
-	wildHPText := fmt.Sprintf("  HP: %d/%d",
-		m.currentBattle.WildPokemon.CurrentHP,
-		m.currentBattle.WildPokemon.MaxHP)
-
-	s.WriteString(wildHPText + "\n")
-	s.WriteString("  " + wildHPBar + "\n\n")
-
-	// Spacer
-	s.WriteString(strings.Repeat(" ", 20) + "VS\n\n")
-
-	// Your Pokemon (bottom section)
+	
+	enemyInfoStyled := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#FF6B6B")).
+		Padding(0, 1).
+		Render(enemyInfo)
+	
+	enemySprite := ""
+	if m.enemyBattleSprite != nil {
+		enemySprite = convertImageToASCIISmall(m.enemyBattleSprite)
+	}
+	
+	// Join enemy info and sprite horizontally
+	enemyRow := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		enemySprite,
+		"  ",
+		enemyInfoStyled,
+	)
+	
+	// Right align the whole enemy section
+	s.WriteString(lipgloss.NewStyle().
+		Width(80).
+		Align(lipgloss.Right).
+		Render(enemyRow))
+	
+	s.WriteString("\n\n")
+	
+	// Middle spacer
+	s.WriteString(strings.Repeat(" ", 32) + "⚔️\n\n")
+	
+	// Bottom row: Your Pokemon (left aligned)
 	playerName := strings.ToUpper(m.currentBattle.PlayerPokemon.Pokemon.Name)
 	playerLevel := fmt.Sprintf("Lv %d", m.currentBattle.PlayerPokemon.Level)
-
-	playerHeader := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#4ECDC4")).
-		Bold(true).
-		Render(fmt.Sprintf("  Your %s  %s", playerName, playerLevel))
-
-	s.WriteString(playerHeader + "\n")
-
-	// Your Pokemon HP bar
-	playerHPBar := renderHPBar(
+	
+	playerInfo := fmt.Sprintf("%s %s\nHP: %d/%d\n%s",
+		playerName,
+		playerLevel,
 		m.currentBattle.PlayerPokemon.CurrentHP,
 		m.currentBattle.PlayerPokemon.MaxHP,
-		40,
+		renderHPBar(m.currentBattle.PlayerPokemon.CurrentHP, m.currentBattle.PlayerPokemon.MaxHP, 20),
 	)
-	playerHPText := fmt.Sprintf("  HP: %d/%d",
-		m.currentBattle.PlayerPokemon.CurrentHP,
-		m.currentBattle.PlayerPokemon.MaxHP)
-
-	s.WriteString(playerHPText + "\n")
-	s.WriteString("  " + playerHPBar + "\n\n")
-
+	
+	playerInfoStyled := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#4ECDC4")).
+		Padding(0, 1).
+		Render(playerInfo)
+	
+	playerSprite := ""
+	if m.playerBattleSprite != nil {
+		playerSprite = convertImageToASCIISmall(m.playerBattleSprite)
+	}
+	
+	// Join player info and sprite horizontally
+	playerRow := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		playerInfoStyled,
+		"  ",
+		playerSprite,
+	)
+	
+	s.WriteString(playerRow)
+	s.WriteString("\n\n")
+	
 	// Battle log
 	if m.battleLog != "" {
 		logBox := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("#888888")).
 			Padding(0, 1).
-			Width(50).
+			Width(60).
 			Render(m.battleLog)
 		s.WriteString(logBox + "\n\n")
 	}
-
-	// Action boxes at bottom (Pokemon-style!)
+	
+	// Action boxes at bottom
 	if !m.currentBattle.IsOver {
 		s.WriteString(m.renderBattleActions())
 	} else {
 		s.WriteString(helpStyle.Render("  Press 'b' to return"))
 	}
-
+	
 	return s.String()
 }
 
@@ -564,8 +606,8 @@ func (m Model) renderBattleActions() string {
 				Background(lipgloss.Color("#2C5F8D")).
 				Foreground(lipgloss.Color("#FFD700")).
 				Bold(true).
-				Padding(0, 2).
-				Width(12).
+				Padding(0, 1).
+				Width(10).
 				Align(lipgloss.Center)
 		} else {
 			// Unselected action
@@ -573,8 +615,8 @@ func (m Model) renderBattleActions() string {
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("#666666")).
 				Foreground(lipgloss.Color("#CCCCCC")).
-				Padding(0, 2).
-				Width(12).
+				Padding(0, 1).
+				Width(10).
 				Align(lipgloss.Center)
 		}
 		
