@@ -11,6 +11,7 @@ import (
 	"github.com/rusilkoirala/pokedexcli/internal/battle"
 	"github.com/rusilkoirala/pokedexcli/internal/locations"
 	"github.com/rusilkoirala/pokedexcli/internal/pokeapi"
+	"github.com/rusilkoirala/pokedexcli/internal/town"
 )
 
 type pokemonListMsg struct {
@@ -52,6 +53,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
+		case "w":
+			if m.currentView == overworldView {
+				return m.handleMove(0, -1)
+			}
+		case "s":
+			if m.currentView == overworldView {
+				return m.handleMove(0, 1)
+			}
+		case "a":
+			if m.currentView == overworldView {
+				return m.handleMove(-1, 0)
+			}
+		case "d":
+			if m.currentView == overworldView {
+				return m.handleMove(0, 1)
+			}
+
 		case "ctrl+c", "q":
 			if m.currentView == encounterView {
 				return m, nil
@@ -113,6 +131,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			if m.currentView == battleView {
 				return m.handleBattleAction()
+			}
+
+			if m.currentView == exploreView {
+				m.currentLocation = m.cursor
+				m.currentMap = town.GetMap(m.currentLocation)
+				m.playerX = m.currentMap.StartX
+				m.playerY = m.currentMap.StartY
+				m.stepCount = 0
+				m.encounterSteps = 0
+				m.currentView = overworldView
+				return m, nil
 			}
 			return m.handleEnter()
 
@@ -583,4 +612,47 @@ func (m Model) handleBattleAction() (tea.Model, tea.Cmd) {
 	}
 
 	return m, m.executeBattleAttack()
+}
+
+// move playerr
+func (m Model) handleMove(dx, dy int) (tea.Model, tea.Cmd) {
+	if m.currentMap == nil {
+		return m, nil
+	}
+
+	newX := m.playerX + dx
+	newY := m.playerY + dy
+
+	// check if movement valid
+	if m.currentMap.IsWalkable(newX, newY) {
+		m.playerX = newX
+		m.playerY = newY
+		m.stepCount++
+		m.encounterSteps++
+
+		if m.currentMap.IsGrass(newX, newY) {
+			if m.encounterSteps >= 5+rand.Intn(5) {
+				m.encounterSteps = 0
+				return m.triggerWildEncounter()
+			}
+		}
+	}
+	return m, nil
+}
+
+// trigger encounterr
+func (m Model) triggerWildEncounter() (tea.Model, tea.Cmd) {
+
+	if m.currentMap == nil {
+		return m, nil
+	}
+
+	//get random pokemon on basis of map
+	pokemonID := rand.Intn(m.currentMap.MaxPokemonID-m.currentMap.MinPokemonID+1) + m.currentMap.MinPokemonID
+
+	m.currentView = encounterView
+	m.loading = true
+	m.message = ""
+
+	return m, m.loadEncounter(pokemonID)
 }

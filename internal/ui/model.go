@@ -7,6 +7,7 @@ import (
 	"github.com/rusilkoirala/pokedexcli/internal/battle"
 	"github.com/rusilkoirala/pokedexcli/internal/pokeapi"
 	"github.com/rusilkoirala/pokedexcli/internal/pokedex"
+	"github.com/rusilkoirala/pokedexcli/internal/town"
 )
 
 type view int
@@ -20,6 +21,7 @@ const (
 	myPokedexView
 	exploreView
 	encounterView
+	overworldView
 	pokemonSelectView
 	battleView
 )
@@ -70,7 +72,12 @@ type Model struct {
 	playerBattleSprite   image.Image
 	enemyBattleSprite    image.Image
 
-	// Terminal dimensions
+	currentMap     *town.WorldMap
+	playerX        int
+	playerY        int
+	stepCount      int
+	encounterSteps int
+
 	width  int
 	height int
 }

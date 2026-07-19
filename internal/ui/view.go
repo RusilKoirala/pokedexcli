@@ -11,54 +11,69 @@ import (
 )
 
 var (
+	// Color palette - Pokemon inspired but professional
+	primaryColor   = lipgloss.Color("#FF6B6B")  // Pokemon Red
+	secondaryColor = lipgloss.Color("#4ECDC4")  // Cyan/Blue
+	accentColor    = lipgloss.Color("#FFE66D")  // Yellow
+	successColor   = lipgloss.Color("#95E1D3")  // Mint green
+	textColor      = lipgloss.Color("#F7F7F7")  // Off-white
+	mutedColor     = lipgloss.Color("#8B9798")  // Gray
+	bgDark         = lipgloss.Color("#1A1A2E")  // Dark bg
+	bgLight        = lipgloss.Color("#16213E")  // Light bg
+
+	// Title styles
 	titleStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("#FFD700")).
-			Background(lipgloss.Color("#C41E3A")).
+			Foreground(accentColor).
+			Border(lipgloss.DoubleBorder(), true).
+			BorderForeground(primaryColor).
 			Padding(0, 2).
 			MarginBottom(1)
 
+	// Menu item styles
 	menuItemStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FFFFFF")).
-			PaddingLeft(2)
+			Foreground(textColor).
+			PaddingLeft(4).
+			PaddingRight(4).
+			MarginBottom(1)
 
 	selectedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FFD700")).
+			Foreground(bgDark).
+			Background(accentColor).
 			Bold(true).
-			Background(lipgloss.Color("#2C5F8D")).
-			PaddingLeft(1).
-			PaddingRight(1)
+			PaddingLeft(2).
+			PaddingRight(2).
+			MarginBottom(1)
 
+	// Help text
 	helpStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#8B8B8B")).
+			Foreground(mutedColor).
 			Italic(true).
 			MarginTop(1)
 
+	// Box styles
 	boxStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("#FFD700")).
+			BorderForeground(secondaryColor).
 			Padding(1, 2).
 			MarginTop(1)
 
-	encounterBoxStyle = lipgloss.NewStyle().
-				Border(lipgloss.DoubleBorder()).
-				BorderForeground(lipgloss.Color("#FF6B6B")).
-				Padding(2, 4).
-				Align(lipgloss.Center)
+	infoBoxStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(primaryColor).
+			Padding(1, 2).
+			Align(lipgloss.Left)
 
+	// Status styles
 	successStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#00FF00")).
+			Foreground(successColor).
 			Bold(true)
 
 	errorStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FF6B6B")).
+			Foreground(primaryColor).
 			Bold(true)
 
-	creditsStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#4ECDC4")).
-			Padding(0, 2).
-			Align(lipgloss.Center)
-
+	// Type colors
 	typeColors = map[string]string{
 		"normal":   "#A8A878",
 		"fire":     "#F08030",
@@ -113,7 +128,8 @@ func convertImageToASCIISmall(img image.Image) string {
 
 func (m Model) View() string {
 	if m.loading {
-		return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, "Loading...")
+		return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center,
+			lipgloss.NewStyle().Foreground(accentColor).Render("Loading..."))
 	}
 
 	var content string
@@ -142,7 +158,7 @@ func (m Model) View() string {
 
 	if m.message != "" {
 		content += "\n" + lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FFD700")).
+			Foreground(accentColor).
 			Bold(true).
 			Render("» "+m.message)
 	}
@@ -154,58 +170,61 @@ func (m Model) View() string {
 func (m Model) renderStartScreen() string {
 	var s strings.Builder
 
-	// ASCII Art Title
+	// Clean ASCII Art Title
 	asciiTitle := `
-██████╗  ██████╗ ██╗  ██╗███████╗██████╗ ███████╗██╗  ██╗
-██╔══██╗██╔═══██╗██║ ██╔╝██╔════╝██╔══██╗██╔════╝╚██╗██╔╝
-██████╔╝██║   ██║█████╔╝ █████╗  ██║  ██║█████╗   ╚███╔╝ 
-██╔═══╝ ██║   ██║██╔═██╗ ██╔══╝  ██║  ██║██╔══╝   ██╔██╗ 
-██║     ╚██████╔╝██║  ██╗███████╗██████╔╝███████╗██╔╝ ██╗
-╚═╝      ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═════╝ ╚══════╝╚═╝  ╚═╝
-                                                          
-                ██████╗██╗     ██╗                       
-               ██╔════╝██║     ██║                       
-               ██║     ██║     ██║                       
-               ██║     ██║     ██║                       
-               ╚██████╗███████╗██║                       
-                ╚═════╝╚══════╝╚═╝                       
+╔═══════════════════════════════════════════════════╗
+║                                                   ║
+║   ██████   ██████  ██  ██ ███████ ██████  ███████║
+║   ██   ██ ██    ██ ██ ██  ██      ██   ██ ██     ║
+║   ██████  ██    ██ █████   █████  ██   ██ █████  ║
+║   ██      ██    ██ ██  ██  ██      ██   ██ ██     ║
+║   ██       ██████  ██   ██ ███████ ██████  ███████║
+║                                                   ║
+║              ██████ ██      ██                    ║
+║             ██      ██      ██                    ║
+║             ██      ██      ██                    ║
+║             ██      ██      ██                    ║
+║              ██████ ███████ ██                    ║
+║                                                   ║
+╚═══════════════════════════════════════════════════╝
 `
 
 	titleStyled := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FFD700")).
+		Foreground(accentColor).
 		Bold(true).
 		Render(asciiTitle)
 
 	s.WriteString(titleStyled + "\n")
 
 	subtitle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FFFFFF")).
+		Foreground(textColor).
 		Italic(true).
-		Render("Catch 'Em All in Your Terminal!")
+		Render("A Terminal Adventure")
 
 	s.WriteString(subtitle + "\n\n")
 
-	// Menu options
+	// Clean menu options
 	options := []string{
-		"🎮  Play",
-		"👥  Credits",
-		"🚪  Exit",
+		"Play",
+		"Credits",
+		"Exit",
 	}
 
 	for i, option := range options {
 		if m.cursor == i {
-			s.WriteString(selectedStyle.Render("  ▶ "+option+"  ") + "\n\n")
+			s.WriteString(selectedStyle.Render("▸ "+option) + "\n")
 		} else {
-			s.WriteString(menuItemStyle.Render(option) + "\n\n")
+			s.WriteString(menuItemStyle.Render("  "+option) + "\n")
 		}
 	}
 
-	s.WriteString(helpStyle.Render("↑/↓: navigate • enter: select • q: quit") + "\n\n")
+	s.WriteString("\n")
+	s.WriteString(helpStyle.Render("↑/↓: navigate  •  enter: select  •  q: quit"))
+	s.WriteString("\n\n")
 
 	version := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#666666")).
-		Italic(true).
-		Render("v1.0.0 | Made with Bubble Tea 🧋")
+		Foreground(mutedColor).
+		Render("v1.0.0")
 
 	s.WriteString(version)
 
@@ -217,34 +236,37 @@ func (m Model) renderCredits() string {
 
 	title := lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.Color("#FFD700")).
-		Background(lipgloss.Color("#C41E3A")).
-		Padding(1, 4).
+		Foreground(accentColor).
+		Border(lipgloss.ThickBorder(), true).
+		BorderForeground(primaryColor).
+		Padding(0, 3).
 		Render("CREDITS")
 
 	s.WriteString(title + "\n\n")
 
-	credits := `
-🎨 Created By: Your Name
+	credits := lipgloss.NewStyle().
+		Foreground(textColor).
+		Render(`
+Created By: Your Name
 
-🔧 Built With:
-   • Go Programming Language
-   • Bubble Tea TUI Framework
-   • Lipgloss Styling
-   • PokeAPI
+Built With:
+  • Go Programming Language
+  • Bubble Tea TUI Framework
+  • Lipgloss Styling
+  • PokeAPI
 
-💖 Special Thanks:
-   • Pokemon Company
-   • Open source community
-   • You for playing!
+Special Thanks:
+  • Pokemon Company
+  • Open source community
+  • You for playing!
 
-🌟 GitHub: github.com/yourusername/pokedexcli
-`
+GitHub: github.com/yourusername/pokedexcli
+`)
 
-	creditsBox := boxStyle.Render(creditsStyle.Render(credits))
+	creditsBox := boxStyle.Render(credits)
 
 	s.WriteString(creditsBox + "\n\n")
-	s.WriteString(helpStyle.Render("Press 'b' to go back"))
+	s.WriteString(helpStyle.Render("press 'b' to go back"))
 
 	return s.String()
 }
@@ -252,24 +274,34 @@ func (m Model) renderCredits() string {
 func (m Model) renderMenu() string {
 	var s strings.Builder
 
-	s.WriteString(titleStyle.Render("⚡ POKÉDEX CLI ⚡") + "\n\n")
+	header := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(accentColor).
+		Border(lipgloss.RoundedBorder(), false, false, true, false).
+		BorderForeground(primaryColor).
+		Padding(0, 1).
+		MarginBottom(2).
+		Render("POKEDEX CLI")
+
+	s.WriteString(header + "\n")
 
 	options := []string{
-		"📚 Browse Pokemon",
-		"🎒 My Pokedex",
-		"🗺️  Go Exploring",
-		"🚪 Exit",
+		"Browse Pokemon",
+		"My Pokedex",
+		"Go Exploring",
+		"Exit",
 	}
 
 	for i, option := range options {
 		if m.cursor == i {
-			s.WriteString(selectedStyle.Render(" ▶ "+option+" ") + "\n\n")
+			s.WriteString(selectedStyle.Render("▸ "+option) + "\n")
 		} else {
-			s.WriteString(menuItemStyle.Render(option) + "\n\n")
+			s.WriteString(menuItemStyle.Render("  "+option) + "\n")
 		}
 	}
 
-	s.WriteString(helpStyle.Render("↑/↓: navigate • enter: select • q: quit"))
+	s.WriteString("\n")
+	s.WriteString(helpStyle.Render("↑/↓: navigate  •  enter: select  •  q: quit"))
 	return s.String()
 }
 
@@ -278,25 +310,28 @@ func (m Model) renderList() string {
 
 	header := lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.Color("#FFD700")).
-		Render(fmt.Sprintf("📋 Pokemon List (Page %d)", m.page+1))
+		Foreground(accentColor).
+		Render(fmt.Sprintf("Pokemon List  │  Page %d", m.page+1))
 
-	s.WriteString(header + "\n\n")
+	s.WriteString(header + "\n")
+	s.WriteString(lipgloss.NewStyle().
+		Foreground(mutedColor).
+		Render(strings.Repeat("─", 50)) + "\n\n")
 
 	for i, name := range m.pokemonList {
 		caught := ""
 		if m.pokedex.Has(name) {
-			caught = " ✓"
+			caught = lipgloss.NewStyle().Foreground(successColor).Render(" ✓")
 		}
 
 		if m.cursor == i {
-			s.WriteString(selectedStyle.Render(" ▶ "+name+caught+" ") + "\n")
+			s.WriteString(selectedStyle.Render("▸ "+name) + caught + "\n")
 		} else {
-			s.WriteString(menuItemStyle.Render(name+caught) + "\n")
+			s.WriteString(menuItemStyle.Render("  "+name) + caught + "\n")
 		}
 	}
 
-	s.WriteString("\n" + helpStyle.Render("↑/↓: navigate • enter: view • n: next • p: prev • b: back"))
+	s.WriteString("\n" + helpStyle.Render("↑/↓: navigate  •  enter: view  •  n: next  •  p: prev  •  b: back"))
 	return s.String()
 }
 
@@ -385,28 +420,31 @@ func (m Model) renderMyPokedex() string {
 
 	header := lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.Color("#FFD700")).
-		Render(fmt.Sprintf("🎒 My Pokedex (%d caught)", m.pokedex.Count()))
+		Foreground(accentColor).
+		Render(fmt.Sprintf("My Pokedex  │  %d Caught", m.pokedex.Count()))
 
-	s.WriteString(header + "\n\n")
+	s.WriteString(header + "\n")
+	s.WriteString(lipgloss.NewStyle().
+		Foreground(mutedColor).
+		Render(strings.Repeat("─", 50)) + "\n\n")
 
 	if len(m.pokemonList) == 0 {
 		emptyMsg := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#8B8B8B")).
+			Foreground(mutedColor).
 			Italic(true).
-			Render("Your Pokedex is empty!\nGo exploring to catch some Pokemon!")
+			Render("Your Pokedex is empty!\nGo exploring to catch some Pokemon.")
 		s.WriteString(emptyMsg + "\n")
 	} else {
 		for i, name := range m.pokemonList {
 			if m.cursor == i {
-				s.WriteString(selectedStyle.Render(" ▶ "+name+" ") + "\n")
+				s.WriteString(selectedStyle.Render("▸ "+name) + "\n")
 			} else {
-				s.WriteString(menuItemStyle.Render(name) + "\n")
+				s.WriteString(menuItemStyle.Render("  "+name) + "\n")
 			}
 		}
 	}
 
-	s.WriteString("\n" + helpStyle.Render("↑/↓: navigate • enter: view • b: back"))
+	s.WriteString("\n" + helpStyle.Render("↑/↓: navigate  •  enter: view  •  b: back"))
 	return s.String()
 }
 
@@ -415,32 +453,41 @@ func (m Model) renderExplore() string {
 
 	header := lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.Color("#FFD700")).
-		Render("🗺️  Exploration Mode")
+		Foreground(accentColor).
+		Render("Exploration Mode")
 
 	s.WriteString(header + "\n")
+	s.WriteString(lipgloss.NewStyle().
+		Foreground(mutedColor).
+		Render(strings.Repeat("─", 50)) + "\n")
 	s.WriteString(helpStyle.Render("Choose a location and press 'e' to explore") + "\n\n")
 
 	for i := 0; i < locations.GetLocationCount(); i++ {
 		location := locations.GetLocation(i)
 
 		if m.cursor == i {
-			s.WriteString(selectedStyle.Render(" ▶ "+location.Name+" ") + "\n")
-			s.WriteString(helpStyle.Render("→ "+location.Description) + "\n\n")
+			s.WriteString(selectedStyle.Render("▸ "+location.Name) + "\n")
+			s.WriteString(lipgloss.NewStyle().
+				Foreground(mutedColor).
+				Italic(true).
+				PaddingLeft(4).
+				Render(location.Description) + "\n\n")
 		} else {
-			s.WriteString(menuItemStyle.Render(location.Name) + "\n\n")
+			s.WriteString(menuItemStyle.Render("  "+location.Name) + "\n\n")
 		}
 	}
 
-	// Stats box
+	// Stats
+	statsText := fmt.Sprintf("Encounters: %d  │  Caught: %d", m.totalEncounters, m.pokedex.Count())
 	statsBox := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#6890F0")).
+		BorderForeground(secondaryColor).
+		Foreground(textColor).
 		Padding(0, 2).
-		Render(fmt.Sprintf("Encounters: %d  |  Caught: %d", m.totalEncounters, m.pokedex.Count()))
+		Render(statsText)
 
 	s.WriteString(statsBox + "\n\n")
-	s.WriteString(helpStyle.Render("↑/↓: navigate • e: explore • b: back"))
+	s.WriteString(helpStyle.Render("↑/↓: navigate  •  e: explore  •  b: back"))
 	return s.String()
 }
 
@@ -453,9 +500,9 @@ func (m Model) renderEncounter() string {
 	location := locations.GetLocation(m.currentLocation)
 
 	locationHeader := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#78C850")).
+		Foreground(successColor).
 		Bold(true).
-		Render(fmt.Sprintf("📍 %s", location.Name))
+		Render(fmt.Sprintf("Location: %s", location.Name))
 
 	s.WriteString(locationHeader + "\n\n")
 
@@ -464,7 +511,7 @@ func (m Model) renderEncounter() string {
 		wildText := fmt.Sprintf("A wild %s appeared!", strings.ToUpper(m.encounterPokemon.Name))
 
 		encounterHeader := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FF6B6B")).
+			Foreground(primaryColor).
 			Bold(true).
 			Render(wildText)
 
@@ -475,36 +522,38 @@ func (m Model) renderEncounter() string {
 		}
 
 		// Pokemon info line
-		infoLine := fmt.Sprintf("#%03d  ", m.encounterPokemon.ID)
+		infoLine := fmt.Sprintf("#%03d", m.encounterPokemon.ID)
 		for i, t := range m.encounterPokemon.Types {
 			color := typeColors[t.Type.Name]
 			typeStyle := lipgloss.NewStyle().
 				Foreground(lipgloss.Color(color)).
 				Bold(true).
-				Padding(0, 1).
-				Background(lipgloss.Color("#2C3E50"))
-			infoLine += typeStyle.Render(strings.ToUpper(t.Type.Name))
+				PaddingLeft(1).
+				PaddingRight(1)
+			infoLine += "  " + typeStyle.Render(strings.ToUpper(t.Type.Name))
 			if i < len(m.encounterPokemon.Types)-1 {
-				infoLine += " "
+				infoLine += ""
 			}
 		}
 		s.WriteString("\n" + infoLine + "\n\n")
 
 		if m.pokedex.Has(m.encounterPokemon.Name) {
-			s.WriteString(helpStyle.Render("⚠️  Already in your Pokedex") + "\n\n")
+			s.WriteString(lipgloss.NewStyle().
+				Foreground(mutedColor).
+				Render("Already in your Pokedex") + "\n\n")
 		}
 
 		catchRate := m.calculateCatchRate() * 100
 		catchRateText := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FFD700")).
+			Foreground(accentColor).
 			Render(fmt.Sprintf("Catch Rate: %.0f%%", catchRate))
 		s.WriteString(catchRateText + "\n\n")
 
 		actionsBox := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("#FFD700")).
+			BorderForeground(secondaryColor).
 			Padding(0, 2).
-			Render("[b] Battle  [c] Catch  [r] Run  [esc] Back")
+			Render("[b] Battle  │  [c] Catch  │  [r] Run")
 		s.WriteString(actionsBox)
 
 	case throwing:
@@ -517,28 +566,28 @@ func (m Model) renderEncounter() string {
 		s.WriteString("\n" + animation + "\n")
 
 	case caught:
-		successMsg := successStyle.Render(fmt.Sprintf("🎉 Gotcha! %s was caught! 🎉", strings.ToUpper(m.encounterPokemon.Name)))
+		successMsg := successStyle.Render(fmt.Sprintf("Gotcha! %s was caught!", strings.ToUpper(m.encounterPokemon.Name)))
 
 		successBox := lipgloss.NewStyle().
-			Border(lipgloss.DoubleBorder()).
-			BorderForeground(lipgloss.Color("#00FF00")).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(successColor).
 			Padding(1, 2).
 			Render(successMsg + "\n\n" + fmt.Sprintf("%s was added to your Pokedex!", m.encounterPokemon.Name))
 
 		s.WriteString("\n" + successBox + "\n\n")
-		s.WriteString(helpStyle.Render("Press 'b' to continue exploring"))
+		s.WriteString(helpStyle.Render("press 'b' to continue exploring"))
 
 	case escaped:
 		escapeMsg := errorStyle.Render(fmt.Sprintf("Oh no! %s broke free!", strings.ToUpper(m.encounterPokemon.Name)))
 
 		escapeBox := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("#FF6B6B")).
+			BorderForeground(primaryColor).
 			Padding(1, 2).
 			Render(escapeMsg)
 
 		s.WriteString("\n" + escapeBox + "\n\n")
-		s.WriteString(helpStyle.Render("Press 'b' to continue"))
+		s.WriteString(helpStyle.Render("press 'b' to continue"))
 	}
 
 	return s.String()
@@ -547,23 +596,29 @@ func (m Model) renderEncounter() string {
 func (m Model) renderPokemonSelect() string {
 	var s strings.Builder
 
-	header := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFD700")).Render("⚔️  Choose Your Pokemon")
+	header := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(accentColor).
+		Render("Choose Your Pokemon")
 
-	s.WriteString(header + "\n\n")
+	s.WriteString(header + "\n")
+	s.WriteString(lipgloss.NewStyle().
+		Foreground(mutedColor).
+		Render(strings.Repeat("─", 50)) + "\n\n")
 
 	if len(m.pokemonList) == 0 {
 		s.WriteString(helpStyle.Render("You don't have any Pokemon!\n"))
 	} else {
 		for i, name := range m.pokemonList {
 			if m.cursor == i {
-				s.WriteString(selectedStyle.Render(" ▶ "+name+" ") + "\n")
+				s.WriteString(selectedStyle.Render("▸ "+name) + "\n")
 			} else {
-				s.WriteString(menuItemStyle.Render(name) + "\n")
+				s.WriteString(menuItemStyle.Render("  "+name) + "\n")
 			}
 		}
 	}
 
-	s.WriteString("\n" + helpStyle.Render("↑/↓: navigate • enter: select • b: back"))
+	s.WriteString("\n" + helpStyle.Render("↑/↓: navigate  •  enter: select  •  b: back"))
 	return s.String()
 }
 
@@ -588,7 +643,7 @@ func (m Model) renderBattle() string {
 
 	enemyInfoStyled := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#FF6B6B")).
+		BorderForeground(primaryColor).
 		Padding(0, 1).
 		Render(enemyInfo)
 
@@ -623,7 +678,7 @@ func (m Model) renderBattle() string {
 
 	playerInfoStyled := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#4ECDC4")).
+		BorderForeground(secondaryColor).
 		Padding(0, 1).
 		Render(playerInfo)
 
@@ -645,7 +700,8 @@ func (m Model) renderBattle() string {
 	if m.battleLog != "" {
 		logBox := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("#888888")).
+			BorderForeground(mutedColor).
+			Foreground(textColor).
 			Padding(0, 1).
 			Width(60).
 			Render(m.battleLog)
@@ -656,7 +712,7 @@ func (m Model) renderBattle() string {
 	if !m.currentBattle.IsOver {
 		s.WriteString(m.renderMoveBoxes())
 	} else {
-		s.WriteString(helpStyle.Render("Press 'b' to return"))
+		s.WriteString(helpStyle.Render("press 'b' to return"))
 	}
 
 	return s.String()
@@ -678,7 +734,7 @@ func (m Model) renderMoveBoxes() string {
 			typeColor = "#CCCCCC"
 		}
 
-		moveContent := fmt.Sprintf("%s\n%s | PP:%d/%d",
+		moveContent := fmt.Sprintf("%s\n%s  PP:%d/%d",
 			strings.ToUpper(move.Name),
 			strings.ToUpper(move.Type),
 			move.PP,
@@ -688,21 +744,21 @@ func (m Model) renderMoveBoxes() string {
 			// Selected move - highlighted
 			boxStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("#FFD700")).
-				Background(lipgloss.Color("#2C5F8D")).
-				Foreground(lipgloss.Color("#FFD700")).
+				BorderForeground(accentColor).
+				Background(bgLight).
+				Foreground(accentColor).
 				Bold(true).
 				Padding(0, 1).
-				Width(16).
+				Width(18).
 				Align(lipgloss.Center)
 		} else {
 			// Unselected move
 			boxStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color(typeColor)).
-				Foreground(lipgloss.Color("#CCCCCC")).
+				Foreground(textColor).
 				Padding(0, 1).
-				Width(16).
+				Width(18).
 				Align(lipgloss.Center)
 		}
 
@@ -712,7 +768,7 @@ func (m Model) renderMoveBoxes() string {
 	// Join boxes horizontally with spacing
 	movesRow := lipgloss.JoinHorizontal(lipgloss.Top, boxes...)
 
-	help := helpStyle.Render("←/→: select move • enter: attack • c: catch • r: run • b: back")
+	help := helpStyle.Render("←/→: select  •  enter: attack  •  c: catch  •  r: run  •  b: back")
 
 	return "\n" + movesRow + "\n\n" + help
 }
@@ -745,11 +801,11 @@ func renderHPBar(current, max, width int) string {
 	// Color based on HP percentage
 	var color lipgloss.Color
 	if percentage > 0.5 {
-		color = lipgloss.Color("#00FF00") // Green
+		color = successColor // Green
 	} else if percentage > 0.2 {
-		color = lipgloss.Color("#FFD700") // Yellow
+		color = accentColor // Yellow
 	} else {
-		color = lipgloss.Color("#FF0000") // Red
+		color = primaryColor // Red
 	}
 
 	filledStyle := lipgloss.NewStyle().Foreground(color)
