@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	_ "image/png"
 	_ "image/jpeg"
+	_ "image/png"
 	"io"
 	"net/http"
 	"time"
@@ -23,15 +23,34 @@ func NewClient() *Client {
 	}
 }
 
+type Move struct {
+	ID       int    `json:"id"`
+	Name     string `json:"name"`
+	Power    int    `json:"power"`
+	Accuracy int    `json:"accuracy"`
+	PP       int    `json:"PP"`
+	Type     struct {
+		Name string `json:"name"`
+	} `json:"type"`
+}
+
+type PokemonMove struct {
+	Move struct {
+		Name string `json:"name"`
+		URL  string `json:"url"`
+	} `json:"move"`
+}
+
 type Pokemon struct {
-	ID             int           `json:"id"`
-	Name           string        `json:"name"`
-	Height         int           `json:"height"`
-	Weight         int           `json:"weight"`
-	BaseExperience int           `json:"base_experience"`
-	Types          []PokemonType `json:"types"`
-	Stats          []PokemonStat `json:"stats"`
+	ID             int            `json:"id"`
+	Name           string         `json:"name"`
+	Height         int            `json:"height"`
+	Weight         int            `json:"weight"`
+	BaseExperience int            `json:"base_experience"`
+	Types          []PokemonType  `json:"types"`
+	Stats          []PokemonStat  `json:"stats"`
 	Sprites        PokemonSprites `json:"sprites"`
+	Moves          []PokemonMove  `json:"moves"`
 }
 
 type PokemonSprites struct {
@@ -58,6 +77,30 @@ type PokemonListResponse struct {
 		Name string `json:"name"`
 		URL  string `json:"url"`
 	} `json:"results"`
+}
+
+func (c *Client) GetMove(name string) (*Move, error) {
+	url := fmt.Sprintf("%s/move/%s", baseUrl, name)
+	resp, err := c.httpClient.Get(url)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode == 404 {
+		return nil, fmt.Errorf("move not found")
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var move Move
+	if err := json.Unmarshal(body, &move); err != nil {
+		return nil, err
+	}
+	return &move, nil
 }
 
 // fetch list of pokemon
