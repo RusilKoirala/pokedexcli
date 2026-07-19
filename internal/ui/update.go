@@ -68,6 +68,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "down", "j":
 			switch m.currentView {
+			case startView:
+				if m.cursor < 2 {
+					m.cursor++
+				}
 			case menuView:
 				if m.cursor < 3 {
 					m.cursor++
@@ -216,6 +220,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 	switch m.currentView {
+	case startView:
+		switch m.cursor {
+		case 0:
+			m.currentView = menuView
+			m.cursor = 0
+		case 1:
+			m.currentView = creditsView
+			m.cursor = 0
+		case 2:
+			m.pokedex.Save()
+			return m, tea.Quit
+		}
 	case menuView:
 		switch m.cursor {
 		case 0:
@@ -264,6 +280,9 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 func (m Model) handleBack() (tea.Model, tea.Cmd) {
 	m.message = ""
 	switch m.currentView {
+	case creditsView:
+		m.currentView = startView
+		m.cursor = 0
 	case listView, myPokedexView, exploreView:
 		m.currentView = menuView
 		m.cursor = 0

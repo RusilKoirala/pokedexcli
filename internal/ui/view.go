@@ -11,12 +11,21 @@ import (
 )
 
 var (
-	titleStyle = lipgloss.NewStyle().
+	bigtitleStyle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("#FFD700")).
 			Background(lipgloss.Color("#C41E3A")).
-			Padding(0, 2).
-			MarginBottom(1)
+			Padding(1, 4).
+			MarginBottom(2).
+			Align(lipgloss.Center)
+
+	subtitleStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFFFFF")).
+			Italic(true).
+			Align(lipgloss.Center).
+			MarginBottom(2)
+
+	titleStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFD700")).Background(lipgloss.Color("#C41E3A")).Padding(0, 2).MarginBottom(1)
 
 	menuItemStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FFFFFF")).
@@ -53,6 +62,11 @@ var (
 	errorStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FF6B6B")).
 			Bold(true)
+
+	creditsStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#4ECDC4")).
+			Padding(0, 2).
+			Align(lipgloss.Center)
 
 	typeColors = map[string]string{
 		"normal":   "#A8A878",
@@ -118,6 +132,10 @@ func (m Model) View() string {
 	}
 
 	switch m.currentView {
+	case startView:
+		s.WriteString(m.renderStartScreen())
+	case creditsView:
+		s.WriteString(m.renderCredits())
 	case menuView:
 		s.WriteString(m.renderMenu())
 	case listView:
@@ -142,6 +160,58 @@ func (m Model) View() string {
 			Bold(true).
 			Render("  » "+m.message) + "\n")
 	}
+	return s.String()
+}
+
+func (m Model) renderStartScreen() string {
+	var s strings.Builder
+
+	s.WriteString("\n\n")
+	asciiTitle := `
+  ██████╗  ██████╗ ██╗  ██╗███████╗██████╗ ███████╗██╗  ██╗
+  ██╔══██╗██╔═══██╗██║ ██╔╝██╔════╝██╔══██╗██╔════╝╚██╗██╔╝
+  ██████╔╝██║   ██║█████╔╝ █████╗  ██║  ██║█████╗   ╚███╔╝
+  ██╔═══╝ ██║   ██║██╔═██╗ ██╔══╝  ██║  ██║██╔══╝   ██╔██╗
+  ██║     ╚██████╔╝██║  ██╗███████╗██████╔╝███████╗██╔╝ ██╗
+  ╚═╝      ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═════╝ ╚══════╝╚═╝  ╚═╝
+
+                      ██████╗██╗     ██╗
+                     ██╔════╝██║     ██║
+                     ██║     ██║     ██║
+                     ██║     ██║     ██║
+                     ╚██████╗███████╗██║
+                      ╚═════╝╚══════╝╚═╝
+`
+	titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700")).Bold(true).Align(lipgloss.Center).Width(80).Render(asciiTitle)
+
+	s.WriteString(titleStyle + "\n")
+
+	subtitle := "Catch 'Em All in Your Terminal!"
+	subtitleStyled := subtitleStyle.Width(80).Render(subtitle)
+	s.WriteString(subtitleStyled + "\n\n")
+
+	// options
+	options := []string{
+		"Play",
+		"Credits",
+		"Exit",
+	}
+
+	for i, options := range options {
+		if m.cursor == i {
+			s.WriteString("      " + selectedStyle.Render("  ▶ "+options+"  ") + "\n\n")
+		} else {
+			s.WriteString("        " + menuItemStyle.Render(options) + "\n\n")
+		}
+	}
+
+	s.WriteString("\n")
+	s.WriteString(helpStyle.Align(lipgloss.Center).Width(80).Render("↑/↓: navigate • enter: select • q: quit"))
+	s.WriteString("\n\n")
+
+	version := lipgloss.NewStyle().Foreground(lipgloss.Color("#666666")).Italic(true).Align(lipgloss.Center).Width(80).Render("v1.0.0 | Made with ❤️ for Pokémon")
+
+	s.WriteString(version)
 	return s.String()
 }
 
@@ -495,7 +565,7 @@ func (m Model) renderBattle() string {
 	// Top row: Enemy Pokemon (right aligned)
 	enemyName := strings.ToUpper(m.currentBattle.WildPokemon.Pokemon.Name)
 	enemyLevel := fmt.Sprintf("Lv %d", m.currentBattle.WildPokemon.Level)
-	
+
 	// Enemy info and sprite side by side
 	enemyInfo := fmt.Sprintf("%s %s\nHP: %d/%d\n%s",
 		enemyName,
@@ -504,18 +574,18 @@ func (m Model) renderBattle() string {
 		m.currentBattle.WildPokemon.MaxHP,
 		renderHPBar(m.currentBattle.WildPokemon.CurrentHP, m.currentBattle.WildPokemon.MaxHP, 20),
 	)
-	
+
 	enemyInfoStyled := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("#FF6B6B")).
 		Padding(0, 1).
 		Render(enemyInfo)
-	
+
 	enemySprite := ""
 	if m.enemyBattleSprite != nil {
 		enemySprite = convertImageToASCIISmall(m.enemyBattleSprite)
 	}
-	
+
 	// Join enemy info and sprite horizontally
 	enemyRow := lipgloss.JoinHorizontal(
 		lipgloss.Top,
@@ -523,22 +593,22 @@ func (m Model) renderBattle() string {
 		"  ",
 		enemyInfoStyled,
 	)
-	
+
 	// Right align the whole enemy section
 	s.WriteString(lipgloss.NewStyle().
 		Width(80).
 		Align(lipgloss.Right).
 		Render(enemyRow))
-	
+
 	s.WriteString("\n\n")
-	
+
 	// Middle spacer
 	s.WriteString(strings.Repeat(" ", 32) + "⚔️\n\n")
-	
+
 	// Bottom row: Your Pokemon (left aligned)
 	playerName := strings.ToUpper(m.currentBattle.PlayerPokemon.Pokemon.Name)
 	playerLevel := fmt.Sprintf("Lv %d", m.currentBattle.PlayerPokemon.Level)
-	
+
 	playerInfo := fmt.Sprintf("%s %s\nHP: %d/%d\n%s",
 		playerName,
 		playerLevel,
@@ -546,18 +616,18 @@ func (m Model) renderBattle() string {
 		m.currentBattle.PlayerPokemon.MaxHP,
 		renderHPBar(m.currentBattle.PlayerPokemon.CurrentHP, m.currentBattle.PlayerPokemon.MaxHP, 20),
 	)
-	
+
 	playerInfoStyled := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("#4ECDC4")).
 		Padding(0, 1).
 		Render(playerInfo)
-	
+
 	playerSprite := ""
 	if m.playerBattleSprite != nil {
 		playerSprite = convertImageToASCIISmall(m.playerBattleSprite)
 	}
-	
+
 	// Join player info and sprite horizontally
 	playerRow := lipgloss.JoinHorizontal(
 		lipgloss.Top,
@@ -565,10 +635,10 @@ func (m Model) renderBattle() string {
 		"  ",
 		playerSprite,
 	)
-	
+
 	s.WriteString(playerRow)
 	s.WriteString("\n\n")
-	
+
 	// Battle log
 	if m.battleLog != "" {
 		logBox := lipgloss.NewStyle().
@@ -579,27 +649,40 @@ func (m Model) renderBattle() string {
 			Render(m.battleLog)
 		s.WriteString(logBox + "\n\n")
 	}
-	
+
 	// Move boxes at bottom
 	if !m.currentBattle.IsOver {
 		s.WriteString(m.renderMoveBoxes())
 	} else {
 		s.WriteString(helpStyle.Render("  Press 'b' to return"))
 	}
-	
+
 	return s.String()
 }
 
-func (m Model) renderBattleActions() string {
-	actions := []string{"ATTACK", "CATCH", "RUN"}
-	
+func (m Model) renderMoveBoxes() string {
+	if m.currentBattle == nil || len(m.currentBattle.PlayerPokemon.Moves) == 0 {
+		return ""
+	}
+
 	var boxes []string
-	
-	for i, action := range actions {
+
+	for i, move := range m.currentBattle.PlayerPokemon.Moves {
 		var boxStyle lipgloss.Style
-		
-		if i == int(m.battleAction) {
-			// Selected action - highlighted
+
+		typeColor := typeColors[move.Type]
+		if typeColor == "" {
+			typeColor = "#CCCCCC"
+		}
+
+		moveContent := fmt.Sprintf("%s\n%s | PP:%d/%d",
+			strings.ToUpper(move.Name),
+			strings.ToUpper(move.Type),
+			move.PP,
+			move.MaxPP)
+
+		if i == m.selectedMoveIndex {
+			// Selected move - highlighted
 			boxStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("#FFD700")).
@@ -607,28 +690,28 @@ func (m Model) renderBattleActions() string {
 				Foreground(lipgloss.Color("#FFD700")).
 				Bold(true).
 				Padding(0, 1).
-				Width(10).
+				Width(16).
 				Align(lipgloss.Center)
 		} else {
-			// Unselected action
+			// Unselected move
 			boxStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("#666666")).
+				BorderForeground(lipgloss.Color(typeColor)).
 				Foreground(lipgloss.Color("#CCCCCC")).
 				Padding(0, 1).
-				Width(10).
+				Width(16).
 				Align(lipgloss.Center)
 		}
-		
-		boxes = append(boxes, boxStyle.Render(action))
+
+		boxes = append(boxes, boxStyle.Render(moveContent))
 	}
-	
+
 	// Join boxes horizontally with spacing
-	actionsRow := lipgloss.JoinHorizontal(lipgloss.Top, boxes...)
-	
-	help := helpStyle.Render("  ←/→: select • enter: confirm • b: back")
-	
-	return "\n" + actionsRow + "\n\n" + help
+	movesRow := lipgloss.JoinHorizontal(lipgloss.Top, boxes...)
+
+	help := helpStyle.Render("  ←/→: select move • enter: attack • c: catch • r: run • b: back")
+
+	return "\n" + movesRow + "\n\n" + help
 }
 
 // renderHPBar renders HP bar with colors
@@ -636,7 +719,7 @@ func renderHPBar(current, max, width int) string {
 	if max == 0 || current < 0 {
 		return strings.Repeat("░", width)
 	}
-	
+
 	percentage := float64(current) / float64(max)
 	if percentage > 1.0 {
 		percentage = 1.0
@@ -644,33 +727,63 @@ func renderHPBar(current, max, width int) string {
 	if percentage < 0.0 {
 		percentage = 0.0
 	}
-	
+
 	filledWidth := int(float64(width) * percentage)
 	emptyWidth := width - filledWidth
-	
-	// Ensure non-negative widths
+
+	// ensure non-negative widths
 	if filledWidth < 0 {
 		filledWidth = 0
 	}
 	if emptyWidth < 0 {
 		emptyWidth = 0
 	}
-	
-	// Color based on HP percentage
+
+	// color based on HP percentage
 	var color lipgloss.Color
 	if percentage > 0.5 {
-		color = lipgloss.Color("#00FF00") // Green
+		color = lipgloss.Color("#00FF00") // green
 	} else if percentage > 0.2 {
-		color = lipgloss.Color("#FFD700") // Yellow
+		color = lipgloss.Color("#FFD700") // yellow
 	} else {
-		color = lipgloss.Color("#FF0000") // Red
+		color = lipgloss.Color("#FF0000") // red
 	}
-	
+
 	filledStyle := lipgloss.NewStyle().Foreground(color)
 	emptyStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#333333"))
-	
+
 	filled := filledStyle.Render(strings.Repeat("█", filledWidth))
 	empty := emptyStyle.Render(strings.Repeat("░", emptyWidth))
-	
+
 	return filled + empty
+}
+func (m Model) renderCredits() string {
+	var s strings.Builder
+	s.WriteString("\n\n")
+
+	title := bigtitleStyle.Width(80).Render("CREDITS")
+	s.WriteString(title + "\n\n")
+
+	credits := `
+	Created By : Rusil Koirala
+
+	Built With : 
+	Go 
+	PokeAPI
+	Bubble Tea TUI Framework
+	Lipgloss for Styling
+
+	Github: github.com/rusilkoirala/pokedexcli
+	`
+
+	creditsBox := boxStyle.
+		Width(60).
+		Align(lipgloss.Center).
+		Render(creditsStyle.Render(credits))
+
+	s.WriteString(lipgloss.NewStyle().Width(80).Align(lipgloss.Center).Render(creditsBox))
+	s.WriteString("\n\n")
+	s.WriteString(helpStyle.Align(lipgloss.Center).Width(80).Render("Press 'b' to go back"))
+
+	return s.String()
 }
