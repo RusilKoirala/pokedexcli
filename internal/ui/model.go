@@ -12,7 +12,9 @@ import (
 type view int
 
 const (
-	menuView view = iota
+	startView view = iota
+	menuView
+	creditsView
 	listView
 	detailView
 	myPokedexView
@@ -42,6 +44,7 @@ const (
 	actionItems
 )
 
+type Model struct {
 	api          *pokeapi.Client
 	pokedex      *pokedex.Pokedex
 	currentView  view
@@ -73,7 +76,7 @@ func NewModel() Model {
 	return Model{
 		api:               pokeapi.NewClient(),
 		pokedex:           dex,
-		currentView:       menuView,
+		currentView:       startView,
 		cursor:            0,
 		page:              0,
 		currentLocation:   0,
