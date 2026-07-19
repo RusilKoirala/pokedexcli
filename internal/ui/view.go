@@ -797,11 +797,13 @@ func (m Model) renderOverworld() string {
 
 	s.WriteString(header + "\n\n")
 
-	// Build the map content with SPACING to make tiles bigger
+	// Build the map content with SMART SPACING
 	var mapContent strings.Builder
 
 	for y := 0; y < m.currentMap.Height; y++ {
 		rowWidth := len(m.currentMap.Tiles[y])
+		
+		// First pass: render actual row with horizontal spacing
 		for x := 0; x < rowWidth; x++ {
 			if x == m.playerX && y == m.playerY {
 				// Player sprite - bright and bold
@@ -816,13 +818,29 @@ func (m Model) renderOverworld() string {
 				mapContent.WriteString(tileStyle.Render(string(tile)))
 			}
 
-			// Add horizontal spacing between tiles to make them appear bigger
-			mapContent.WriteString(" ")
+			// Add horizontal spacing with smart fill
+			if x < rowWidth-1 {
+				fillChar := getSmartFill(m.currentMap, x, y)
+				fillColor := getTileColor(fillChar)
+				fillStyle := lipgloss.NewStyle().Foreground(fillColor)
+				mapContent.WriteString(fillStyle.Render(string(fillChar)))
+			}
 		}
 		mapContent.WriteString("\n")
 
-		// Add vertical spacing (empty line) to make tiles appear taller
+		// Second pass: add vertical spacing row with smart fill
 		if y < m.currentMap.Height-1 {
+			for x := 0; x < rowWidth; x++ {
+				fillChar := getSmartFill(m.currentMap, x, y)
+				fillColor := getTileColor(fillChar)
+				fillStyle := lipgloss.NewStyle().Foreground(fillColor)
+				mapContent.WriteString(fillStyle.Render(string(fillChar)))
+				
+				// Also fill the diagonal/corner space
+				if x < rowWidth-1 {
+					mapContent.WriteString(fillStyle.Render(string(fillChar)))
+				}
+			}
 			mapContent.WriteString("\n")
 		}
 	}
@@ -862,6 +880,64 @@ func (m Model) renderOverworld() string {
 	s.WriteString(controls)
 
 	return s.String()
+}
+
+// getSmartFill returns the appropriate fill character based on surrounding tiles
+func getSmartFill(worldMap *town.WorldMap, x, y int) town.TileType {
+	currentTile := worldMap.Tiles[y][x]
+	
+	// Special tiles (houses, signs, trees, etc.) should NOT be duplicated in fill
+	specialTiles := map[town.TileType]bool{
+		town.TileHouse:  true,
+		town.TileSign:   true,
+		town.TileFlower: true,
+		town.TileCave:   true,
+		town.TileTree:   true,
+	}
+	
+	if specialTiles[currentTile] {
+		// Look at neighbors to determine what to fill with
+		neighbors := []town.TileType{}
+		
+		// Check right
+		if x+1 < len(worldMap.Tiles[y]) {
+			neighbors = append(neighbors, worldMap.Tiles[y][x+1])
+		}
+		// Check down
+		if y+1 < worldMap.Height && x < len(worldMap.Tiles[y+1]) {
+			neighbors = append(neighbors, worldMap.Tiles[y+1][x])
+		}
+		// Check left
+		if x > 0 {
+			neighbors = append(neighbors, worldMap.Tiles[y][x-1])
+		}
+		// Check up
+		if y > 0 && x < len(worldMap.Tiles[y-1]) {
+			neighbors = append(neighbors, worldMap.Tiles[y-1][x])
+		}
+		
+		// Count grass vs path neighbors
+		grassCount := 0
+		pathCount := 0
+		for _, neighbor := range neighbors {
+			if neighbor == town.TileGrass {
+				grassCount++
+			} else if neighbor == town.TilePath {
+				pathCount++
+			}
+		}
+		
+		// Return most common neighbor type
+		if grassCount > pathCount {
+			return town.TileGrass
+		} else if pathCount > 0 {
+			return town.TilePath
+		}
+		return town.TileGrass // default
+	}
+	
+	// For regular tiles, just duplicate them
+	return currentTile
 }
 
 func getTileColor(tile town.TileType) lipgloss.Color {
