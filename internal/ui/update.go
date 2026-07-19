@@ -8,6 +8,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rusilkoirala/pokedexcli/internal/battle"
 	"github.com/rusilkoirala/pokedexcli/internal/locations"
 	"github.com/rusilkoirala/pokedexcli/internal/pokeapi"
 )
@@ -24,6 +25,14 @@ type pokemonDetailMsg struct {
 type encounterMsg struct {
 	pokemon *pokeapi.Pokemon
 	sprite  image.Image
+}
+
+type battleStartMsg struct {
+	battle *battle.Battle
+}
+
+type battleActionMsg struct {
+	message string
 }
 
 type errorMsg struct {
@@ -169,6 +178,13 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 			m.currentView = detailView
 			m.loading = true
 			return m, m.loadPokemonDetail(m.pokemonList[m.cursor])
+		}
+
+	case pokemonSelectView:
+		if len(m.pokemonList) > 0 {
+			playerPokemonName := m.pokemonList[m.cursor]
+			m.loading = true
+			return m, m.loadPlayerPokemonForBattle(playerPokemonName)
 		}
 
 	case exploreView:
@@ -343,4 +359,90 @@ func (m Model) handleExplore() (tea.Model, tea.Cmd) {
 	m.message = ""
 
 	return m, m.loadEncounter(pokemonID)
+}
+
+// load player's pokemon for battle
+func (m Model) loadPlayerPokemonForBattle(name string) tea.Cmd {
+	return func() tea.Msg {
+		playerPokemon, err := m.api.GetPokemon(name)
+		if err != nil {
+			return errorMsg{err}
+		}
+
+		newBattle := battle.NewBattle(playerPokemon, m.encounterPokemon)
+
+		return battleStartMsg{battle: newBattle}
+	}
+}
+
+// execute attack in battle
+func (m Model) executeBattleAttack() tea.Cmd {
+	return func() tea.Msg {
+		if m.currentBattle == nil {
+			return battleActionMsg{
+				message: "No battle active",
+			}
+		}
+
+		// player attack himmm
+		playerMsg := m.currentBattle.PlayerAttack()
+
+		// check if battle over
+		if m.currentBattle.IsOver {
+			return battleActionMsg{
+				message: playerMsg,
+			}
+		}
+
+		// enemy attackk
+		enemyMsg := m.currentBattle.EnemyAttack()
+
+		return battleActionMsg{
+			message: playerMsg + "\n" + enemyMsg,
+		}
+	}
+}
+
+// execute catch attempt in battle
+func (m Model) executeBattleCatch() tea.Cmd {
+	return func() tea.Msg {
+		if m.currentBattle == nil {
+			return battleActionMsg{
+				message: "No battle active",
+			}
+		}
+
+		catchRate := m.currentBattle.GetCatchRate()
+
+		if rand.Float64() < catchRate {
+			m.pokedex.Catch(m.encounterPokemon.Name)
+			m.pokedex.Save()
+			m.currentBattle.IsOver = true
+			m.currentBattle.PlayerWon = true
+			return battleActionMsg{
+				message: "You caught " + m.encounterPokemon.Name + "!",
+			}
+		}
+		return battleActionMsg{
+			message: m.encounterPokemon.Name + " broke free!",
+		}
+	}
+}
+
+// handles battle actions (ATTACK , CATCH , RUNNN)
+func (m Model) handleBattleAction() (tea.Model, tea.Cmd) {
+	if m.currentBattle == nil || m.currentBattle.IsOver {
+		return m, nil
+	}
+	switch m.battleAction {
+	case actionAttack:
+		return m, m.executeBattleAttack()
+	case actionCatch:
+		return m, m.executeBattleCatch()
+	case actionRun:
+		m.message = "You ran away!"
+		m.currentView = exploreView
+		m.currentBattle = nil
+	}
+	return m, nil
 }

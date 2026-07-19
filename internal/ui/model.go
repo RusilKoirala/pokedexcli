@@ -4,6 +4,7 @@ import (
 	"image"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rusilkoirala/pokedexcli/internal/battle"
 	"github.com/rusilkoirala/pokedexcli/internal/pokeapi"
 	"github.com/rusilkoirala/pokedexcli/internal/pokedex"
 )
@@ -17,6 +18,8 @@ const (
 	myPokedexView
 	exploreView
 	encounterView
+	pokemonSelectView
+	battleView
 )
 
 type encounterState int
@@ -28,6 +31,15 @@ const (
 	shaking
 	caught
 	escaped
+)
+
+type battleAction int
+
+const (
+	actionAttack battleAction = iota
+	actionRun
+	actionCatch
+	actionItems
 )
 
 type Model struct {
@@ -48,6 +60,11 @@ type Model struct {
 	encounterState   encounterState
 	shakeCount       int
 	totalEncounters  int
+
+	currentBattle        *battle.Battle
+	battleAction         battleAction
+	selectedPokemonIndex int
+	battle               string
 }
 
 func NewModel() Model {
