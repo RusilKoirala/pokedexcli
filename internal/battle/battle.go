@@ -1,6 +1,7 @@
 package battle
 
 import (
+	"fmt"
 	"math/rand"
 
 	"github.com/rusilkoirala/pokedexcli/internal/pokeapi"
@@ -23,11 +24,12 @@ type BattlePokemon struct {
 	Level     int
 }
 
-// create Battle
+// NewBattle creates a new battle instance
 func NewBattle(playerPokemon, wildPokemon *pokeapi.Pokemon) *Battle {
-
-	playerHP := calculateHP(playerPokemon, 10) // player Pokemon at level 10 :D
-	wildHP := calculateHP(wildPokemon, rand.Intn(6)+5)
+	// Calculate HP based on base stats
+	playerHP := calculateHP(playerPokemon, 10) // Player Pokemon at level 10 for now
+	wildLevel := rand.Intn(6) + 5              // Wild Pokemon level 5-10
+	wildHP := calculateHP(wildPokemon, wildLevel)
 
 	return &Battle{
 		PlayerPokemon: &BattlePokemon{
@@ -40,7 +42,7 @@ func NewBattle(playerPokemon, wildPokemon *pokeapi.Pokemon) *Battle {
 			Pokemon:   wildPokemon,
 			CurrentHP: wildHP,
 			MaxHP:     wildHP,
-			Level:     rand.Intn(6) + 5,
+			Level:     wildLevel,
 		},
 		Turn:         1,
 		IsPlayerTurn: true,
@@ -50,34 +52,37 @@ func NewBattle(playerPokemon, wildPokemon *pokeapi.Pokemon) *Battle {
 	}
 }
 
-// calculate HP based on base stat and stat
+// calculateHP calculates HP based on base stat and level
 func calculateHP(p *pokeapi.Pokemon, level int) int {
-	hpStat := 50
+	// Find HP stat
+	hpStat := 50 // default
 	for _, stat := range p.Stats {
 		if stat.Stat.Name == "hp" {
 			hpStat = stat.BaseStat
 			break
 		}
 	}
+
+	// Simple formula: HP = base HP + (level * 2)
 	return hpStat + (level * 2)
 }
 
-// player's attack
+// PlayerAttack processes player's attack
 func (b *Battle) PlayerAttack() string {
 	if !b.IsPlayerTurn || b.IsOver {
 		return ""
 	}
+
 	damage := b.calculateDamage(b.PlayerPokemon, b.WildPokemon)
 	b.WildPokemon.CurrentHP -= damage
 
-	message := ""
+	message := fmt.Sprintf("%s attacks! Dealt %d damage!", b.PlayerPokemon.Pokemon.Name, damage)
+
 	if b.WildPokemon.CurrentHP <= 0 {
 		b.WildPokemon.CurrentHP = 0
 		b.IsOver = true
 		b.PlayerWon = true
-		message = "Wild " + b.WildPokemon.Pokemon.Name + " fainted! You won!"
-	} else {
-		message = "Dealt " + string(rune(damage)) + " damage!"
+		message = fmt.Sprintf("Wild %s fainted! You won!", b.WildPokemon.Pokemon.Name)
 	}
 
 	b.IsPlayerTurn = false
@@ -85,23 +90,22 @@ func (b *Battle) PlayerAttack() string {
 	return message
 }
 
-// enemy attack
+// EnemyAttack processes enemy's attack
 func (b *Battle) EnemyAttack() string {
 	if b.IsPlayerTurn || b.IsOver {
 		return ""
 	}
+
 	damage := b.calculateDamage(b.WildPokemon, b.PlayerPokemon)
 	b.PlayerPokemon.CurrentHP -= damage
 
-	message := ""
+	message := fmt.Sprintf("Wild %s attacks! Dealt %d damage!", b.WildPokemon.Pokemon.Name, damage)
 
 	if b.PlayerPokemon.CurrentHP <= 0 {
 		b.PlayerPokemon.CurrentHP = 0
 		b.IsOver = true
 		b.PlayerWon = false
-		message = b.PlayerPokemon.Pokemon.Name + " fainted! You lost!"
-	} else {
-		message = "Enemy dealt " + string(rune(damage)) + " damage!"
+		message = fmt.Sprintf("%s fainted! You lost!", b.PlayerPokemon.Pokemon.Name)
 	}
 
 	b.IsPlayerTurn = true
@@ -109,40 +113,50 @@ func (b *Battle) EnemyAttack() string {
 	return message
 }
 
-// calculate dmage from attacker to defender
+// calculateDamage calculates damage from attacker to defender
 func (b *Battle) calculateDamage(attacker, defender *BattlePokemon) int {
+	// Get attack and defense stats
 	attack := b.getStat(attacker.Pokemon, "attack")
-	defense := b.getStat(defender.Pokemon, "defender")
+	defense := b.getStat(defender.Pokemon, "defense")
 
+	// Simple damage formula
 	baseDamage := (attack * 2) - (defense / 2)
 
+	// Add randomness (85% - 100%)
 	randomFactor := 0.85 + (rand.Float64() * 0.15)
 	damage := int(float64(baseDamage) * randomFactor)
 
+	// Minimum damage of 5
 	if damage < 5 {
 		damage = 5
 	}
+
 	return damage
 }
 
-// get stat valuee
+// getStat gets a specific stat value
 func (b *Battle) getStat(p *pokeapi.Pokemon, statName string) int {
 	for _, stat := range p.Stats {
 		if stat.Stat.Name == statName {
 			return stat.BaseStat
 		}
 	}
-	return 50
+	return 50 // default
 }
 
-// get catch ratee by hp
+// GetCatchRate returns catch rate based on HP remaining
 func (b *Battle) GetCatchRate() float64 {
 	if b.WildPokemon.CurrentHP == 0 {
-		return 0.95
+		return 0.95 // Very high if fainted
 	}
 
 	hpPercent := float64(b.WildPokemon.CurrentHP) / float64(b.WildPokemon.MaxHP)
 
+	// Lower HP = higher catch rate
+	// 100% HP = 40% catch
+	// 50% HP = 60% catch
+	// 25% HP = 75% catch
+	// 10% HP = 90% catch
 	catchRate := 0.4 + (0.5 * (1 - hpPercent))
 
 	return catchRate

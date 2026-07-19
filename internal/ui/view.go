@@ -115,13 +115,17 @@ func (m Model) View() string {
 		s.WriteString(m.renderExplore())
 	case encounterView:
 		s.WriteString(m.renderEncounter())
+	case pokemonSelectView:
+		s.WriteString(m.renderPokemonSelect())
+	case battleView:
+		s.WriteString(m.renderBattle())
 	}
 
 	if m.message != "" {
 		s.WriteString("\n" + lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FFD700")).
 			Bold(true).
-			Render("  » " + m.message) + "\n")
+			Render("  » "+m.message) + "\n")
 	}
 	return s.String()
 }
@@ -130,14 +134,14 @@ func (m Model) renderMenu() string {
 	var s strings.Builder
 
 	s.WriteString("\n")
-	
+
 	options := []string{
 		"📚 Browse Pokemon",
 		"🎒 My Pokedex",
 		"🗺️  Go Exploring",
 		"🚪 Exit",
 	}
-	
+
 	for i, option := range options {
 		cursor := "  "
 		if m.cursor == i {
@@ -162,7 +166,7 @@ func (m Model) renderList() string {
 		Bold(true).
 		Foreground(lipgloss.Color("#FFD700")).
 		Render(fmt.Sprintf("📋 Pokemon List (Page %d)", m.page+1))
-	
+
 	s.WriteString("\n" + header + "\n\n")
 
 	for i, name := range m.pokemonList {
@@ -177,7 +181,7 @@ func (m Model) renderList() string {
 			s.WriteString("    " + menuItemStyle.Render(name+caught) + "\n")
 		}
 	}
-	
+
 	s.WriteString("\n")
 	s.WriteString(helpStyle.Render("  ↑/↓: navigate • enter: view • n: next • p: prev • b: back"))
 	return s.String()
@@ -270,7 +274,7 @@ func (m Model) renderMyPokedex() string {
 		Bold(true).
 		Foreground(lipgloss.Color("#FFD700")).
 		Render(fmt.Sprintf("🎒 My Pokedex (%d caught)", m.pokedex.Count()))
-	
+
 	s.WriteString("\n" + header + "\n\n")
 
 	if len(m.pokemonList) == 0 {
@@ -296,12 +300,12 @@ func (m Model) renderMyPokedex() string {
 
 func (m Model) renderExplore() string {
 	var s strings.Builder
-	
+
 	header := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("#FFD700")).
 		Render("🗺️  Exploration Mode")
-	
+
 	s.WriteString("\n" + header + "\n")
 	s.WriteString(helpStyle.Render("  Choose a location and press 'e' to explore") + "\n\n")
 
@@ -322,7 +326,7 @@ func (m Model) renderExplore() string {
 		BorderForeground(lipgloss.Color("#6890F0")).
 		Padding(0, 2).
 		Render(fmt.Sprintf("Encounters: %d  |  Caught: %d", m.totalEncounters, m.pokedex.Count()))
-	
+
 	s.WriteString(statsBox + "\n\n")
 	s.WriteString(helpStyle.Render("  ↑/↓: navigate • e: explore • b: back"))
 	return s.String()
@@ -332,35 +336,35 @@ func (m Model) renderEncounter() string {
 	if m.encounterPokemon == nil {
 		return "Loading encounter..."
 	}
-	
+
 	var s strings.Builder
 	location := locations.GetLocation(m.currentLocation)
-	
+
 	locationHeader := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#78C850")).
 		Bold(true).
 		Render(fmt.Sprintf("📍 %s", location.Name))
-	
+
 	s.WriteString("\n" + locationHeader + "\n\n")
 
 	switch m.encounterState {
 	case appearing, choosing:
 		// Wild Pokemon appeared box
 		wildText := fmt.Sprintf("A wild %s appeared!", strings.ToUpper(m.encounterPokemon.Name))
-		
+
 		encounterHeader := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FF6B6B")).
 			Bold(true).
 			Align(lipgloss.Center).
 			Width(50).
 			Render(wildText)
-		
+
 		s.WriteString(encounterHeader + "\n\n")
-		
+
 		if m.encounterSprite != nil {
 			s.WriteString(convertImageToASCII(m.encounterSprite) + "\n")
 		}
-		
+
 		// Pokemon info line
 		infoLine := fmt.Sprintf("#%03d  ", m.encounterPokemon.ID)
 		for i, t := range m.encounterPokemon.Types {
@@ -376,31 +380,31 @@ func (m Model) renderEncounter() string {
 			}
 		}
 		s.WriteString("\n" + infoLine + "\n\n")
-		
+
 		if m.pokedex.Has(m.encounterPokemon.Name) {
 			s.WriteString(helpStyle.Render("  ⚠️  Already in your Pokedex") + "\n\n")
 		}
-		
+
 		catchRate := m.calculateCatchRate() * 100
 		catchRateText := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FFD700")).
 			Render(fmt.Sprintf("  Catch Rate: %.0f%%", catchRate))
 		s.WriteString(catchRateText + "\n\n")
-		
+
 		actionsBox := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("#FFD700")).
 			Padding(0, 2).
 			Render("[c] Catch  [r] Run  [b] Back")
 		s.WriteString(actionsBox)
-		
+
 	case throwing:
 		animation := lipgloss.NewStyle().
 			Align(lipgloss.Center).
 			Width(50).
 			Render("You threw a Pokéball!\n\n     ●\n       →\n         ⚫")
 		s.WriteString("\n" + animation + "\n")
-		
+
 	case shaking:
 		shakes := strings.Repeat("... ", m.shakeCount+1)
 		animation := lipgloss.NewStyle().
@@ -408,10 +412,10 @@ func (m Model) renderEncounter() string {
 			Width(50).
 			Render("The Pokéball is shaking...\n\n" + shakes)
 		s.WriteString("\n" + animation + "\n")
-		
+
 	case caught:
 		successMsg := successStyle.Render(fmt.Sprintf("🎉 Gotcha! %s was caught! 🎉", strings.ToUpper(m.encounterPokemon.Name)))
-		
+
 		successBox := lipgloss.NewStyle().
 			Border(lipgloss.DoubleBorder()).
 			BorderForeground(lipgloss.Color("#00FF00")).
@@ -419,13 +423,13 @@ func (m Model) renderEncounter() string {
 			Align(lipgloss.Center).
 			Width(50).
 			Render(successMsg + "\n\n" + fmt.Sprintf("%s was added to your Pokedex!", m.encounterPokemon.Name))
-		
+
 		s.WriteString("\n" + successBox + "\n\n")
 		s.WriteString(helpStyle.Render("  Press 'b' to continue exploring"))
-		
+
 	case escaped:
 		escapeMsg := errorStyle.Render(fmt.Sprintf("Oh no! %s broke free!", strings.ToUpper(m.encounterPokemon.Name)))
-		
+
 		escapeBox := lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("#FF6B6B")).
@@ -433,10 +437,98 @@ func (m Model) renderEncounter() string {
 			Align(lipgloss.Center).
 			Width(50).
 			Render(escapeMsg)
-		
+
 		s.WriteString("\n" + escapeBox + "\n\n")
 		s.WriteString(helpStyle.Render("  Press 'b' to continue"))
 	}
-	
+
 	return s.String()
+}
+
+func (m Model) renderPokemonSelect() string {
+	var s strings.Builder
+
+	header := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFD700")).Render("⚔️  Choose Your Pokemon")
+
+	s.WriteString("\n" + header + "\n\n")
+
+	if len(m.pokemonList) == 0 {
+		s.WriteString(helpStyle.Render(" You don't have any Pokemon!\n"))
+	} else {
+		for i, name := range m.pokemonList {
+			if m.cursor == i {
+				s.WriteString("  " + selectedStyle.Render(" ▶ "+name+" ") + "\n")
+			} else {
+				s.WriteString("    " + menuItemStyle.Render(name) + "\n")
+			}
+		}
+	}
+
+	s.WriteString("\n")
+	s.WriteString(helpStyle.Render("  ↑/↓: navigate • enter: select • b: back"))
+	return s.String()
+}
+
+func (m Model) renderBattle() string {
+	if m.currentBattle == nil {
+		return "No battle active"
+	}
+
+	var s strings.Builder
+
+	wildName := strings.ToUpper(m.currentBattle.WildPokemon.Pokemon.Name)
+	wildLevel := fmt.Sprintf("Lv %d", m.currentBattle.WildPokemon.Level)
+
+	wildHeader := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6b")).Bold(true).Render("  Wild %s  %s", wildName, wildLevel)
+	s.WriteString("\n" + wildHeader + "\n")
+
+	wildHPBar := renderHPBar(
+		m.currentBattle.PlayerPokemon.CurrentHP,
+		m.currentBattle.PlayerPokemon.MaxHP,
+		40,
+	)
+
+	wildHPText := fmt.Sprintf(" HP: %d/%d", m.currentBattle.WildPokemon.CurrentHP, m.currentBattle.WildPokemon.MaxHP)
+
+	s.WriteString(wildHPText + "\n")
+	s.WriteString("  " + wildHPBar + "\n\n")
+
+	s.WriteString((strings.Repeat(" ", 20) + "VS\n\n"))
+
+	playerName := strings.ToUpper(m.currentBattle.PlayerPokemon.Pokemon.Name)
+	playerLevel := fmt.Sprintf("Lv %d", m.currentBattle.PlayerPokemon.Level)
+
+	playerHeader := lipgloss.NewStyle().Foreground(lipgloss.Color("#4ECDC4")).Bold(true).Render("  Your %s  %s", playerName, playerLevel)
+
+	s.WriteString(playerHeader + "\n")
+
+	playerHPBar := renderHPBar(
+		m.currentBattle.PlayerPokemon.CurrentHP,
+		m.currentBattle.PlayerPokemon.MaxHP,
+		40,
+	)
+
+	playerHPText := fmt.Sprintf(" HP: %d/%d",
+		m.currentBattle.PlayerPokemon.CurrentHP,
+		m.currentBattle.PlayerPokemon.MaxHP,
+	)
+
+	if m.BattleLog != "" {
+		logbox := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#888888")).Padding(0, 1).Width(50).Render(m.currentBattle.BattleLog...)
+	}
+
+	if !m.currentBattle.IsOver {
+
+	} else {
+		s.WriteString(helpStyle.Render(" Press 'b' to return"))
+	}
+	return s.String()
+}
+
+func (m.Model) renderBattleActions() string {
+	return s.String()
+}
+
+func renderHPBar(current, max, width int) string {
+
 }

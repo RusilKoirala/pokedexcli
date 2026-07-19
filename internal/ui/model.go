@@ -64,7 +64,7 @@ type Model struct {
 	currentBattle        *battle.Battle
 	battleAction         battleAction
 	selectedPokemonIndex int
-	battle               string
+	battleLog            string
 }
 
 func NewModel() Model {
