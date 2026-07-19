@@ -7,6 +7,58 @@ import (
 	"github.com/rusilkoirala/pokedexcli/internal/pokeapi"
 )
 
+type Move struct {
+	Name     string
+	Type     string
+	Power    int
+	Accuracy int
+	PP       int
+	MaxPP    int
+}
+
+var CommonMoves = map[string]*Move{
+	"tackle":        NewMove("Tackle", "normal", 40, 100, 35),
+	"scratch":       NewMove("Scratch", "normal", 40, 100, 35),
+	"quick-attack":  NewMove("Quick Attack", "normal", 40, 100, 30),
+	"thunder-shock": NewMove("Thunder Shock", "electric", 40, 100, 30),
+	"thunderbolt":   NewMove("Thunderbolt", "electric", 90, 100, 15),
+	"water-gun":     NewMove("Water Gun", "water", 40, 100, 25),
+	"ember":         NewMove("Ember", "fire", 40, 100, 25),
+	"vine-whip":     NewMove("Vine Whip", "grass", 45, 100, 25),
+	"bite":          NewMove("Bite", "dark", 60, 100, 25),
+	"iron-tail":     NewMove("Iron Tail", "steel", 100, 75, 15),
+}
+
+func GetDefaultMoves() []*Move {
+	return []*Move{
+		NewMove("Tackle", "normal", 40, 100, 35),
+		NewMove("Quick Attack", "normal", 40, 100, 30),
+		NewMove("Scratch", "normal", 40, 100, 35),
+		NewMove("Pound", "normal", 40, 100, 35),
+	}
+}
+
+func NewMove(name, moveType string, power, accuracy, maxPP int) *Move {
+	return &Move{
+		Name:     name,
+		Type:     moveType,
+		Power:    power,
+		Accuracy: accuracy,
+		PP:       maxPP,
+		MaxPP:    maxPP,
+	}
+}
+
+func (m *Move) CanUse() bool {
+	return m.PP > 0
+}
+
+func (m *Move) Use() {
+	if m.PP > 0 {
+		m.PP--
+	}
+}
+
 type Battle struct {
 	PlayerPokemon *BattlePokemon
 	WildPokemon   *BattlePokemon
@@ -24,11 +76,11 @@ type BattlePokemon struct {
 	Level     int
 }
 
-// NewBattle creates a new battle instance
+// newBattle creates a new battle instance
 func NewBattle(playerPokemon, wildPokemon *pokeapi.Pokemon) *Battle {
-	// Calculate HP based on base stats
-	playerHP := calculateHP(playerPokemon, 10) // Player Pokemon at level 10 for now
-	wildLevel := rand.Intn(6) + 5              // Wild Pokemon level 5-10
+	// calculate HP based on base stats
+	playerHP := calculateHP(playerPokemon, 10) // player Pokemon at level 10 for now
+	wildLevel := rand.Intn(6) + 5              // wild Pokemon level 5-10
 	wildHP := calculateHP(wildPokemon, wildLevel)
 
 	return &Battle{
