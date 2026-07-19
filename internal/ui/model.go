@@ -65,6 +65,8 @@ type Model struct {
 	battleAction         battleAction
 	selectedPokemonIndex int
 	battleLog            string
+	playerBattleSprite   image.Image
+	enemyBattleSprite    image.Image
 }
 
 func NewModel() Model {

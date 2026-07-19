@@ -395,7 +395,7 @@ func (m Model) renderEncounter() string {
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("#FFD700")).
 			Padding(0, 2).
-			Render("[c] Catch  [r] Run  [b] Back")
+			Render("[b] Battle  [c] Catch  [r] Run  [esc] Back")
 		s.WriteString(actionsBox)
 
 	case throwing:
@@ -476,59 +476,159 @@ func (m Model) renderBattle() string {
 
 	var s strings.Builder
 
+	// Wild Pokemon (top section)
 	wildName := strings.ToUpper(m.currentBattle.WildPokemon.Pokemon.Name)
 	wildLevel := fmt.Sprintf("Lv %d", m.currentBattle.WildPokemon.Level)
 
-	wildHeader := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6b")).Bold(true).Render("  Wild %s  %s", wildName, wildLevel)
+	wildHeader := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FF6B6B")).
+		Bold(true).
+		Render(fmt.Sprintf("  Wild %s  %s", wildName, wildLevel))
+
 	s.WriteString("\n" + wildHeader + "\n")
 
+	// Wild Pokemon HP bar
 	wildHPBar := renderHPBar(
-		m.currentBattle.PlayerPokemon.CurrentHP,
-		m.currentBattle.PlayerPokemon.MaxHP,
+		m.currentBattle.WildPokemon.CurrentHP,
+		m.currentBattle.WildPokemon.MaxHP,
 		40,
 	)
-
-	wildHPText := fmt.Sprintf(" HP: %d/%d", m.currentBattle.WildPokemon.CurrentHP, m.currentBattle.WildPokemon.MaxHP)
+	wildHPText := fmt.Sprintf("  HP: %d/%d",
+		m.currentBattle.WildPokemon.CurrentHP,
+		m.currentBattle.WildPokemon.MaxHP)
 
 	s.WriteString(wildHPText + "\n")
 	s.WriteString("  " + wildHPBar + "\n\n")
 
-	s.WriteString((strings.Repeat(" ", 20) + "VS\n\n"))
+	// Spacer
+	s.WriteString(strings.Repeat(" ", 20) + "VS\n\n")
 
+	// Your Pokemon (bottom section)
 	playerName := strings.ToUpper(m.currentBattle.PlayerPokemon.Pokemon.Name)
 	playerLevel := fmt.Sprintf("Lv %d", m.currentBattle.PlayerPokemon.Level)
 
-	playerHeader := lipgloss.NewStyle().Foreground(lipgloss.Color("#4ECDC4")).Bold(true).Render("  Your %s  %s", playerName, playerLevel)
+	playerHeader := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#4ECDC4")).
+		Bold(true).
+		Render(fmt.Sprintf("  Your %s  %s", playerName, playerLevel))
 
 	s.WriteString(playerHeader + "\n")
 
+	// Your Pokemon HP bar
 	playerHPBar := renderHPBar(
 		m.currentBattle.PlayerPokemon.CurrentHP,
 		m.currentBattle.PlayerPokemon.MaxHP,
 		40,
 	)
-
-	playerHPText := fmt.Sprintf(" HP: %d/%d",
+	playerHPText := fmt.Sprintf("  HP: %d/%d",
 		m.currentBattle.PlayerPokemon.CurrentHP,
-		m.currentBattle.PlayerPokemon.MaxHP,
-	)
+		m.currentBattle.PlayerPokemon.MaxHP)
 
-	if m.BattleLog != "" {
-		logbox := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#888888")).Padding(0, 1).Width(50).Render(m.currentBattle.BattleLog...)
+	s.WriteString(playerHPText + "\n")
+	s.WriteString("  " + playerHPBar + "\n\n")
+
+	// Battle log
+	if m.battleLog != "" {
+		logBox := lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("#888888")).
+			Padding(0, 1).
+			Width(50).
+			Render(m.battleLog)
+		s.WriteString(logBox + "\n\n")
 	}
 
+	// Action boxes at bottom (Pokemon-style!)
 	if !m.currentBattle.IsOver {
-
+		s.WriteString(m.renderBattleActions())
 	} else {
-		s.WriteString(helpStyle.Render(" Press 'b' to return"))
+		s.WriteString(helpStyle.Render("  Press 'b' to return"))
 	}
+
 	return s.String()
 }
 
-func (m.Model) renderBattleActions() string {
-	return s.String()
+func (m Model) renderBattleActions() string {
+	actions := []string{"ATTACK", "CATCH", "RUN"}
+	
+	var boxes []string
+	
+	for i, action := range actions {
+		var boxStyle lipgloss.Style
+		
+		if i == int(m.battleAction) {
+			// Selected action - highlighted
+			boxStyle = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("#FFD700")).
+				Background(lipgloss.Color("#2C5F8D")).
+				Foreground(lipgloss.Color("#FFD700")).
+				Bold(true).
+				Padding(0, 2).
+				Width(12).
+				Align(lipgloss.Center)
+		} else {
+			// Unselected action
+			boxStyle = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("#666666")).
+				Foreground(lipgloss.Color("#CCCCCC")).
+				Padding(0, 2).
+				Width(12).
+				Align(lipgloss.Center)
+		}
+		
+		boxes = append(boxes, boxStyle.Render(action))
+	}
+	
+	// Join boxes horizontally with spacing
+	actionsRow := lipgloss.JoinHorizontal(lipgloss.Top, boxes...)
+	
+	help := helpStyle.Render("  ←/→: select • enter: confirm • b: back")
+	
+	return "\n" + actionsRow + "\n\n" + help
 }
 
+// renderHPBar renders HP bar with colors
 func renderHPBar(current, max, width int) string {
-
+	if max == 0 || current < 0 {
+		return strings.Repeat("░", width)
+	}
+	
+	percentage := float64(current) / float64(max)
+	if percentage > 1.0 {
+		percentage = 1.0
+	}
+	if percentage < 0.0 {
+		percentage = 0.0
+	}
+	
+	filledWidth := int(float64(width) * percentage)
+	emptyWidth := width - filledWidth
+	
+	// Ensure non-negative widths
+	if filledWidth < 0 {
+		filledWidth = 0
+	}
+	if emptyWidth < 0 {
+		emptyWidth = 0
+	}
+	
+	// Color based on HP percentage
+	var color lipgloss.Color
+	if percentage > 0.5 {
+		color = lipgloss.Color("#00FF00") // Green
+	} else if percentage > 0.2 {
+		color = lipgloss.Color("#FFD700") // Yellow
+	} else {
+		color = lipgloss.Color("#FF0000") // Red
+	}
+	
+	filledStyle := lipgloss.NewStyle().Foreground(color)
+	emptyStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#333333"))
+	
+	filled := filledStyle.Render(strings.Repeat("█", filledWidth))
+	empty := emptyStyle.Render(strings.Repeat("░", emptyWidth))
+	
+	return filled + empty
 }

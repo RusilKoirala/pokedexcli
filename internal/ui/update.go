@@ -28,7 +28,9 @@ type encounterMsg struct {
 }
 
 type battleStartMsg struct {
-	battle *battle.Battle
+	battle       *battle.Battle
+	playerSprite image.Image
+	enemySprite  image.Image
 }
 
 type battleActionMsg struct {
@@ -54,8 +56,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
+			switch m.currentView {
+			case pokemonSelectView:
+				if m.cursor > 0 {
+					m.cursor--
+				}
+			default:
+				if m.cursor > 0 {
+					m.cursor--
+				}
 			}
 
 		case "down", "j":
@@ -72,12 +81,47 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.cursor < locations.GetLocationCount()-1 {
 					m.cursor++
 				}
+			case pokemonSelectView:
+				if m.cursor < len(m.pokemonList)-1 {
+					m.cursor++
+				}
+			}
+
+		case "left", "h":
+			if m.currentView == battleView {
+				if m.battleAction > 0 {
+					m.battleAction--
+				}
+			}
+
+		case "right", "l":
+			if m.currentView == battleView {
+				if m.battleAction < 2 { // 3 actions: Attack, Catch, Run
+					m.battleAction++
+				}
 			}
 
 		case "enter":
+			if m.currentView == battleView {
+				return m.handleBattleAction()
+			}
 			return m.handleEnter()
 
 		case "b", "esc":
+			if m.currentView == encounterView && m.encounterState == choosing {
+				// Start battle - show Pokemon selection
+				m.currentView = pokemonSelectView
+				m.cursor = 0
+				m.pokemonList = m.pokedex.List()
+				if len(m.pokemonList) == 0 {
+					m.message = "You don't have any Pokemon to battle with!"
+					return m, nil
+				}
+				return m, nil
+			} else if m.currentView == battleView {
+				// Back from battle
+				return m.handleBack()
+			}
 			return m.handleBack()
 
 		case "c":
@@ -134,6 +178,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.loading = false
 		m.totalEncounters++
 		return m, tick()
+
+	case battleStartMsg:
+		m.currentBattle = msg.battle
+		m.playerBattleSprite = msg.playerSprite
+		m.enemyBattleSprite = msg.enemySprite
+		m.currentView = battleView
+		m.battleAction = actionAttack
+		m.loading = false
+		m.battleLog = "Battle started!"
+
+	case battleActionMsg:
+		m.battleLog = msg.message
+		m.loading = false
+
+		// Check if battle is over
+		if m.currentBattle != nil && m.currentBattle.IsOver {
+			if m.currentBattle.PlayerWon {
+				m.message = "You won the battle!"
+			} else {
+				m.message = "You lost the battle!"
+			}
+		}
 
 	case tickMsg:
 		return m.handleTick()
@@ -203,6 +269,17 @@ func (m Model) handleBack() (tea.Model, tea.Cmd) {
 
 	case detailView:
 		m.currentView = listView
+		m.cursor = 0
+	
+	case pokemonSelectView:
+		m.currentView = encounterView
+		m.encounterState = choosing
+		m.cursor = 0
+	
+	case battleView:
+		// Return to explore after battle
+		m.currentView = exploreView
+		m.currentBattle = nil
 		m.cursor = 0
 
 	case encounterView:
