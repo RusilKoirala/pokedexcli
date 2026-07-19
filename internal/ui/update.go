@@ -53,31 +53,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "w":
+		case "w", "up":
 			if m.currentView == overworldView {
 				return m.handleMove(0, -1)
 			}
-		case "s":
-			if m.currentView == overworldView {
-				return m.handleMove(0, 1)
-			}
-		case "a":
-			if m.currentView == overworldView {
-				return m.handleMove(-1, 0)
-			}
-		case "d":
-			if m.currentView == overworldView {
-				return m.handleMove(0, 1)
-			}
-
-		case "ctrl+c", "q":
-			if m.currentView == encounterView {
-				return m, nil
-			}
-			m.pokedex.Save()
-			return m, tea.Quit
-
-		case "up", "k":
+			// existing up movement for menus
 			switch m.currentView {
 			case pokemonSelectView:
 				if m.cursor > 0 {
@@ -89,7 +69,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 
-		case "down", "j":
+		case "s", "down":
+			if m.currentView == overworldView {
+				return m.handleMove(0, 1)
+			}
+			// existing down movement for menus
 			switch m.currentView {
 			case startView:
 				if m.cursor < 2 {
@@ -113,14 +97,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 
-		case "left", "h":
+		case "a", "left":
+			if m.currentView == overworldView {
+				return m.handleMove(-1, 0)
+			}
+			// existing left movement for battle
 			if m.currentView == battleView {
 				if m.selectedMoveIndex > 0 {
 					m.selectedMoveIndex--
 				}
 			}
 
-		case "right", "l":
+		case "d", "right":
+			if m.currentView == overworldView {
+				return m.handleMove(1, 0)
+			}
+			// existing right movement for battle
 			if m.currentView == battleView && m.currentBattle != nil {
 				maxMoves := len(m.currentBattle.PlayerPokemon.Moves) - 1
 				if m.selectedMoveIndex < maxMoves {
@@ -179,7 +171,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m.handleRun()
 			} else if m.currentView == battleView {
 				m.message = "You ran away!"
-				m.currentView = exploreView
+				m.currentView = overworldView  // Return to overworld instead of exploreView
 				m.currentBattle = nil
 			}
 
@@ -330,14 +322,18 @@ func (m Model) handleBack() (tea.Model, tea.Cmd) {
 		m.encounterState = choosing
 		m.cursor = 0
 
-	case battleView:
+	case overworldView:
 		m.currentView = exploreView
-		m.currentBattle = nil
 		m.cursor = 0
+		m.currentMap = nil
+
+	case battleView:
+		m.currentView = overworldView  // Return to overworld instead of exploreView
+		m.currentBattle = nil
 
 	case encounterView:
 		if m.encounterState == caught || m.encounterState == escaped {
-			m.currentView = exploreView
+			m.currentView = overworldView  // Return to overworld instead of exploreView
 			m.encounterState = appearing
 		}
 	}
@@ -428,9 +424,10 @@ func (m Model) calculateCatchRate() float64 {
 }
 
 func (m Model) handleRun() (tea.Model, tea.Cmd) {
-	m.message = "You ran away safely!"
-	m.encounterState = escaped
-	return m, tick()
+	// Immediately return to overworld, no message screen
+	m.currentView = overworldView
+	m.encounterState = appearing
+	return m, nil
 }
 
 func (m Model) handleCatchWild() (tea.Model, tea.Cmd) {
@@ -471,7 +468,7 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 
 	case escaped:
 		time.Sleep(2 * time.Second)
-		m.currentView = exploreView
+		m.currentView = overworldView  // Return to overworld instead of exploreView
 		m.encounterState = appearing
 		return m, nil
 	}

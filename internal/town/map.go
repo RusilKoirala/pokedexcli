@@ -54,21 +54,55 @@ func (m *WorldMap) IsGrass(x, y int) bool {
 // parse map converts ascii art to string
 func parseMap(mapString string) [][]TileType {
 	lines := strings.Split(strings.TrimSpace(mapString), "\n")
-	tiles := make([][]TileType, len(lines))
+	
+	// Filter out empty lines
+	nonEmptyLines := []string{}
+	for _, line := range lines {
+		if len(strings.TrimSpace(line)) > 0 {
+			nonEmptyLines = append(nonEmptyLines, line)
+		}
+	}
+	
+	if len(nonEmptyLines) == 0 {
+		return [][]TileType{}
+	}
+	
+	tiles := make([][]TileType, len(nonEmptyLines))
 
-	for y, line := range lines {
-		tiles[y] = make([]TileType, len([]rune(line)))
-		for x, char := range line {
+	for y, line := range nonEmptyLines {
+		runes := []rune(line)
+		tiles[y] = make([]TileType, len(runes))
+		for x, char := range runes {
 			tiles[y][x] = TileType(char)
 		}
 	}
+
 	return tiles
 }
 
+// getMapWidth returns the maximum width across all rows
+func getMapWidth(tiles [][]TileType) int {
+	maxWidth := 0
+	for _, row := range tiles {
+		if len(row) > maxWidth {
+			maxWidth = len(row)
+		}
+	}
+	return maxWidth
+}
+
 func GetMap(locationID int) *WorldMap {
-	maps := []WorldMap{}
+	maps := []WorldMap{
+		PalletTownMap(),
+		ViridianForestMap(),
+		MtMoonMap(),
+		Route1Map(),
+		SafariZoneMap(),
+	}
+	
 	if locationID < 0 || locationID >= len(maps) {
-		return &maps[0]
+		palletTown := PalletTownMap()
+		return &palletTown
 	}
 
 	return &maps[locationID]
@@ -96,9 +130,10 @@ func PalletTownMap() WorldMap {
                 ▓▓▓`
 
 	tiles := parseMap(mapArt)
+	
 	return WorldMap{
 		Name:         "Pallet Town",
-		Width:        len(tiles[0]),
+		Width:        getMapWidth(tiles),
 		Height:       len(tiles),
 		Tiles:        tiles,
 		StartX:       15,
@@ -131,9 +166,10 @@ func ViridianForestMap() WorldMap {
               ▓▓▓`
 
 	tiles := parseMap(mapArt)
+	
 	return WorldMap{
 		Name:         "Viridian Forest",
-		Width:        len(tiles[0]),
+		Width:        getMapWidth(tiles),
 		Height:       len(tiles),
 		Tiles:        tiles,
 		StartX:       12,
@@ -165,9 +201,10 @@ func MtMoonMap() WorldMap {
             ▓▓▓`
 
 	tiles := parseMap(mapArt)
+	
 	return WorldMap{
 		Name:         "Mt. Moon",
-		Width:        len(tiles[0]),
+		Width:        getMapWidth(tiles),
 		Height:       len(tiles),
 		Tiles:        tiles,
 		StartX:       12,
@@ -198,9 +235,10 @@ func Route1Map() WorldMap {
 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓`
 
 	tiles := parseMap(mapArt)
+	
 	return WorldMap{
 		Name:         "Route 1",
-		Width:        len(tiles[0]),
+		Width:        getMapWidth(tiles),
 		Height:       len(tiles),
 		Tiles:        tiles,
 		StartX:       12,
@@ -231,9 +269,10 @@ func SafariZoneMap() WorldMap {
 ═══════════════════════════`
 
 	tiles := parseMap(mapArt)
+	
 	return WorldMap{
 		Name:         "Safari Zone",
-		Width:        len(tiles[0]),
+		Width:        getMapWidth(tiles),
 		Height:       len(tiles),
 		Tiles:        tiles,
 		StartX:       12,

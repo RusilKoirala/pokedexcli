@@ -8,18 +8,19 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/qeesung/image2ascii/convert"
 	"github.com/rusilkoirala/pokedexcli/internal/locations"
+	"github.com/rusilkoirala/pokedexcli/internal/town"
 )
 
 var (
 	// Color palette - Pokemon inspired but professional
-	primaryColor   = lipgloss.Color("#FF6B6B")  // Pokemon Red
-	secondaryColor = lipgloss.Color("#4ECDC4")  // Cyan/Blue
-	accentColor    = lipgloss.Color("#FFE66D")  // Yellow
-	successColor   = lipgloss.Color("#95E1D3")  // Mint green
-	textColor      = lipgloss.Color("#F7F7F7")  // Off-white
-	mutedColor     = lipgloss.Color("#8B9798")  // Gray
-	bgDark         = lipgloss.Color("#1A1A2E")  // Dark bg
-	bgLight        = lipgloss.Color("#16213E")  // Light bg
+	primaryColor   = lipgloss.Color("#FF6B6B") // Pokemon Red
+	secondaryColor = lipgloss.Color("#4ECDC4") // Cyan/Blue
+	accentColor    = lipgloss.Color("#FFE66D") // Yellow
+	successColor   = lipgloss.Color("#95E1D3") // Mint green
+	textColor      = lipgloss.Color("#F7F7F7") // Off-white
+	mutedColor     = lipgloss.Color("#8B9798") // Gray
+	bgDark         = lipgloss.Color("#1A1A2E") // Dark bg
+	bgLight        = lipgloss.Color("#16213E") // Light bg
 
 	// Title styles
 	titleStyle = lipgloss.NewStyle().
@@ -142,6 +143,8 @@ func (m Model) View() string {
 		content = m.renderCredits()
 	case listView:
 		content = m.renderList()
+	case overworldView:
+		content = m.renderOverworld()
 	case detailView:
 		content = m.renderDetail()
 	case myPokedexView:
@@ -771,6 +774,121 @@ func (m Model) renderMoveBoxes() string {
 	help := helpStyle.Render("←/→: select  •  enter: attack  •  c: catch  •  r: run  •  b: back")
 
 	return "\n" + movesRow + "\n\n" + help
+}
+
+func (m Model) renderOverworld() string {
+	if m.currentMap == nil {
+		return "No map loaded"
+	}
+
+	// Calculate layout - 75% for map, 25% for right panel
+	mapWidth := int(float64(m.width) * 0.75)
+	rightPanelWidth := m.width - mapWidth - 4
+
+	var s strings.Builder
+
+	// Top: Location name (full width)
+	header := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(accentColor).
+		Align(lipgloss.Center).
+		Width(m.width).
+		Render("📍 " + m.currentMap.Name)
+
+	s.WriteString(header + "\n\n")
+
+	// Build the map content with SPACING to make tiles bigger
+	var mapContent strings.Builder
+
+	for y := 0; y < m.currentMap.Height; y++ {
+		rowWidth := len(m.currentMap.Tiles[y])
+		for x := 0; x < rowWidth; x++ {
+			if x == m.playerX && y == m.playerY {
+				// Player sprite - bright and bold
+				playerStyle := lipgloss.NewStyle().
+					Foreground(accentColor).
+					Bold(true)
+				mapContent.WriteString(playerStyle.Render(string(town.TilePlayer)))
+			} else {
+				tile := m.currentMap.Tiles[y][x]
+				tileColor := getTileColor(tile)
+				tileStyle := lipgloss.NewStyle().Foreground(tileColor)
+				mapContent.WriteString(tileStyle.Render(string(tile)))
+			}
+
+			// Add horizontal spacing between tiles to make them appear bigger
+			mapContent.WriteString(" ")
+		}
+		mapContent.WriteString("\n")
+
+		// Add vertical spacing (empty line) to make tiles appear taller
+		if y < m.currentMap.Height-1 {
+			mapContent.WriteString("\n")
+		}
+	}
+
+	// Style the map panel with border
+	mapPanel := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(secondaryColor).
+		Padding(2, 3).
+		Width(mapWidth).
+		Render(mapContent.String())
+
+	// Right panel - empty space
+	rightPanel := lipgloss.NewStyle().
+		Width(rightPanelWidth).
+		Height((m.currentMap.Height * 2) + 6). // Account for spacing
+		Render("")
+
+	// Join left (map) and right (empty) panels horizontally
+	mainContent := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		mapPanel,
+		"  ",
+		rightPanel,
+	)
+
+	s.WriteString(mainContent)
+	s.WriteString("\n\n")
+
+	// Bottom: Controls (full width)
+	controls := lipgloss.NewStyle().
+		Foreground(mutedColor).
+		Align(lipgloss.Center).
+		Width(m.width).
+		Render("WASD/Arrows: move  •  b: back  •  q: quit")
+
+	s.WriteString(controls)
+
+	return s.String()
+}
+
+func getTileColor(tile town.TileType) lipgloss.Color {
+	switch tile {
+	case town.TileGrass:
+		return lipgloss.Color("#78C850")
+	case town.TilePath:
+		return lipgloss.Color("#8B9798")
+	case town.TileTree:
+		return lipgloss.Color("#2D5016")
+	case town.TileWater:
+		return lipgloss.Color("#6890F0")
+	case town.TileBuilding:
+		return lipgloss.Color("#705848")
+	case town.TileHouse:
+		return lipgloss.Color("#FF6B6B")
+	case town.TileCave:
+		return lipgloss.Color("#4A4A4A")
+	case town.TileSign:
+		return lipgloss.Color("#FFE66D")
+	case town.TileFlower:
+		return lipgloss.Color("#EE99AC")
+	case town.TileFence:
+		return lipgloss.Color("#8B4513")
+	default:
+		return lipgloss.Color("#F7F7F7")
+	}
 }
 
 // renderHPBar renders HP bar with colors
