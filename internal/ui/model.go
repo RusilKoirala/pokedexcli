@@ -69,6 +69,10 @@ type Model struct {
 	battleLog            string
 	playerBattleSprite   image.Image
 	enemyBattleSprite    image.Image
+
+	// Terminal dimensions
+	width  int
+	height int
 }
 
 func NewModel() Model {
@@ -83,6 +87,8 @@ func NewModel() Model {
 		shakeCount:        0,
 		totalEncounters:   0,
 		selectedMoveIndex: 0,
+		width:             100,
+		height:            30,
 	}
 }
 
