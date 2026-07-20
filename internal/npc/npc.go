@@ -18,6 +18,9 @@ type NPC struct {
 	Y          int
 	LocationID int
 	Dialogue   []string
+	IsTrainer  bool
+	IsDefeated bool
+	PokemonID  int
 }
 
 // it handles all npcs
@@ -111,6 +114,8 @@ func InitializeNPCs() *NPCManager {
 		X:          10,
 		Y:          7,
 		LocationID: 1,
+		IsTrainer:  true,
+		IsDefeated: false,
 		Dialogue: []string{
 			"Hey! I love bug Pokemon!",
 			"Have you caught any Caterpie or Weedle yet?",
