@@ -1,6 +1,9 @@
 package dialogue
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 type DialogueState int
 
@@ -58,4 +61,75 @@ func (d *DialogueBox) Update() bool {
 
 	d.State = DialogueWaiting
 	return true
+}
+
+// next line advace of dialogue
+func (d *DialogueBox) NextLine() bool {
+	if d.State == DialogueTyping {
+		d.DisplayedText = d.FullText
+		d.CharIndex = len(d.FullText)
+		d.State = DialogueWaiting
+		return true
+	}
+
+	if d.CurrentLine < len(d.Lines)-1 {
+		d.CurrentLine++
+		d.FullText = d.Lines[d.CurrentLine]
+		d.DisplayedText = ""
+		d.CharIndex = 0
+		d.State = DialogueTyping
+		return true
+	}
+
+	d.State = DialogueComplete
+	return false
+}
+
+// all dialogue is shown
+func (d *DialogueBox) IsComplete() bool {
+	return d.State == DialogueComplete
+}
+
+// wraps text in maxwidth
+func WrapText(text string, maxWidth int) []string {
+	if maxWidth <= 0 {
+		return []string{text}
+	}
+
+	words := strings.Fields(text)
+
+	if len(words) == 0 {
+		return []string{""}
+	}
+
+	lines := []string{""}
+	currentLine := ""
+
+	for _, word := range words {
+		testLine := currentLine
+		if testLine != "" {
+			testLine += " "
+		}
+		if len(testLine) <= maxWidth {
+			currentLine = testLine
+		} else {
+			if currentLine != "" {
+				lines = append(lines, currentLine)
+			}
+			currentLine = word
+		}
+	}
+	if currentLine != "" {
+		lines = append(lines, currentLine)
+	}
+
+	return lines
+}
+
+// get visual indicator
+func (d *DialogueBox) GetProgress() string {
+	if d.State == DialogueWaiting {
+		return "▼"
+	}
+	return "..."
 }
