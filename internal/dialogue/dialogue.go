@@ -40,17 +40,17 @@ func NewDialogueBox(speakerName string, lines []string) *DialogueBox {
 	}
 }
 
-// typing animation
+// Update advances the typing animation
 func (d *DialogueBox) Update() bool {
 	if d.State != DialogueTyping {
 		return false
 	}
 
 	now := time.Now()
-
 	if now.Sub(d.LastUpdate) < d.TypingSpeed {
 		return false
 	}
+
 	d.LastUpdate = now
 
 	if d.CharIndex < len(d.FullText) {
@@ -59,13 +59,15 @@ func (d *DialogueBox) Update() bool {
 		return true
 	}
 
+	// Finished typing current line
 	d.State = DialogueWaiting
 	return true
 }
 
-// next line advace of dialogue
+// NextLine advances to the next dialogue line
 func (d *DialogueBox) NextLine() bool {
 	if d.State == DialogueTyping {
+		// Skip typing animation, show full text
 		d.DisplayedText = d.FullText
 		d.CharIndex = len(d.FullText)
 		d.State = DialogueWaiting
@@ -81,28 +83,33 @@ func (d *DialogueBox) NextLine() bool {
 		return true
 	}
 
+	// Dialogue complete
 	d.State = DialogueComplete
 	return false
 }
 
-// all dialogue is shown
+// IsComplete returns true if all dialogue is shown
 func (d *DialogueBox) IsComplete() bool {
 	return d.State == DialogueComplete
 }
 
-// wraps text in maxwidth
+// GetDisplayText returns the currently displayed text with word wrap
+func (d *DialogueBox) GetDisplayText(maxWidth int) []string {
+	return WrapText(d.DisplayedText, maxWidth)
+}
+
+// WrapText wraps text to fit within maxWidth
 func WrapText(text string, maxWidth int) []string {
 	if maxWidth <= 0 {
 		return []string{text}
 	}
 
 	words := strings.Fields(text)
-
 	if len(words) == 0 {
 		return []string{""}
 	}
 
-	lines := []string{""}
+	lines := []string{}
 	currentLine := ""
 
 	for _, word := range words {
@@ -110,6 +117,8 @@ func WrapText(text string, maxWidth int) []string {
 		if testLine != "" {
 			testLine += " "
 		}
+		testLine += word
+
 		if len(testLine) <= maxWidth {
 			currentLine = testLine
 		} else {
@@ -119,6 +128,7 @@ func WrapText(text string, maxWidth int) []string {
 			currentLine = word
 		}
 	}
+
 	if currentLine != "" {
 		lines = append(lines, currentLine)
 	}
@@ -126,10 +136,10 @@ func WrapText(text string, maxWidth int) []string {
 	return lines
 }
 
-// get visual indicator
+// GetProgress returns a visual indicator of dialogue progress
 func (d *DialogueBox) GetProgress() string {
 	if d.State == DialogueWaiting {
 		return "▼"
 	}
-	return "..."
+	return ""
 }

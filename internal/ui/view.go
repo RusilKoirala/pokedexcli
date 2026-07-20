@@ -9,6 +9,7 @@ import (
 	"github.com/qeesung/image2ascii/convert"
 	"github.com/rusilkoirala/pokedexcli/internal/locations"
 	"github.com/rusilkoirala/pokedexcli/internal/town"
+	"github.com/rusilkoirala/pokedexcli/internal/ui/layout"
 	"github.com/rusilkoirala/pokedexcli/internal/ui/views"
 )
 
@@ -147,7 +148,7 @@ func (m Model) View() string {
 	case listView:
 		content = m.renderList()
 	case overworldView:
-		content = m.renderOverworldWithPanel()
+		content = m.renderFixedLayout() // NEW: Fixed layout for overworld
 	case detailView:
 		content = m.renderDetail()
 	case myPokedexView:
@@ -779,18 +780,51 @@ func (m Model) renderMoveBoxes() string {
 	return "\n" + movesRow + "\n\n" + help
 }
 
+// renderFixedLayout renders the FIXED LAYOUT with game, stats, and dialogue
+func (m Model) renderFixedLayout() string {
+	var screen strings.Builder
+	
+	// Top row: Location name centered
+	locationName := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(accentColor).
+		Align(lipgloss.Center).
+		Width(layout.TotalWidth).
+		Render("📍 " + m.currentMap.Name)
+	
+	screen.WriteString(locationName + "\n\n")
+	
+	// Middle row: Game area (left) + Stats panel (right)
+	gameArea := views.RenderMap(m.currentMap, m.playerX, m.playerY, m.npcManager, m.currentLocation)
+	statsPanel := views.RenderStatsPanel(m.player)
+	
+	middleRow := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		gameArea,
+		" ",
+		statsPanel,
+	)
+	
+	screen.WriteString(middleRow + "\n\n")
+	
+	// Bottom row: Dialogue box
+	dialogueBox := views.RenderDialogue(m.currentDialogue)
+	screen.WriteString(dialogueBox)
+	
+	return screen.String()
+}
+
 func (m Model) renderOverworldWithPanel() string {
 	if m.currentMap == nil {
 		return "No map loaded"
 	}
 
-	// Calculate layout - 75% for map, 25% for right panel
-	mapWidth := int(float64(m.width) * 0.75)
-	rightPanelWidth := m.width - mapWidth - 4
+	mapWidth := int(float64(m.width) * 0.70)
+	panelWidth := m.width - mapWidth - 4
 
 	var s strings.Builder
 
-	// Top: Location name (full width)
+	// Top: Location name
 	header := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(accentColor).
@@ -800,20 +834,80 @@ func (m Model) renderOverworldWithPanel() string {
 
 	s.WriteString(header + "\n\n")
 
-	// Build the map content with SMART SPACING
+	// Render map with NPCs
+	mapContent := m.renderMapContentWithNPCs()
+
+	mapPanel := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(secondaryColor).
+		Padding(2, 3).
+		Width(mapWidth).
+		Render(mapContent)
+
+	// Right panel with player info
+	playerPanel := views.RenderPlayerPanel(m.player, panelWidth)
+
+	// Join horizontally
+	mainContent := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		mapPanel,
+		"  ",
+		playerPanel,
+	)
+
+	s.WriteString(mainContent)
+
+	// Dialogue box at bottom (if active)
+	if m.dialogueActive && m.currentDialogue != nil {
+		s.WriteString("\n\n")
+		dialogueBox := views.RenderDialogue(m.currentDialogue)
+		s.WriteString(lipgloss.NewStyle().
+			Align(lipgloss.Center).
+			Width(m.width).
+			Render(dialogueBox))
+	} else {
+		s.WriteString("\n\n")
+		// Controls
+		controls := lipgloss.NewStyle().
+			Foreground(mutedColor).
+			Align(lipgloss.Center).
+			Width(m.width).
+			Render("WASD: move  •  E: talk  •  b: back  •  q: quit")
+		s.WriteString(controls)
+	}
+
+	return s.String()
+}
+
+// renders map with NPCs
+func (m Model) renderMapContentWithNPCs() string {
 	var mapContent strings.Builder
+
+	npcsHere := m.npcManager.GetNPCsForLocation(m.currentLocation)
+	npcPositions := make(map[string]bool)
+	for _, npc := range npcsHere {
+		key := fmt.Sprintf("%d,%d", npc.X, npc.Y)
+		npcPositions[key] = true
+	}
 
 	for y := 0; y < m.currentMap.Height; y++ {
 		rowWidth := len(m.currentMap.Tiles[y])
 
-		// First pass: render actual row with horizontal spacing
 		for x := 0; x < rowWidth; x++ {
+			key := fmt.Sprintf("%d,%d", x, y)
+
 			if x == m.playerX && y == m.playerY {
-				// Player sprite - bright and bold
+				// Player sprite
 				playerStyle := lipgloss.NewStyle().
 					Foreground(accentColor).
 					Bold(true)
 				mapContent.WriteString(playerStyle.Render(string(town.TilePlayer)))
+			} else if npcPositions[key] {
+				// NPC sprite
+				npcStyle := lipgloss.NewStyle().
+					Foreground(lipgloss.Color("#FF6B6B")).
+					Bold(true)
+				mapContent.WriteString(npcStyle.Render(string(town.TileNPC)))
 			} else {
 				tile := m.currentMap.Tiles[y][x]
 				tileColor := getTileColor(tile)
@@ -821,7 +915,6 @@ func (m Model) renderOverworldWithPanel() string {
 				mapContent.WriteString(tileStyle.Render(string(tile)))
 			}
 
-			// Add horizontal spacing with smart fill
 			if x < rowWidth-1 {
 				fillChar := getSmartFill(m.currentMap, x, y)
 				fillColor := getTileColor(fillChar)
@@ -831,7 +924,6 @@ func (m Model) renderOverworldWithPanel() string {
 		}
 		mapContent.WriteString("\n")
 
-		// Second pass: add vertical spacing row with smart fill
 		if y < m.currentMap.Height-1 {
 			for x := 0; x < rowWidth; x++ {
 				fillChar := getSmartFill(m.currentMap, x, y)
@@ -839,7 +931,6 @@ func (m Model) renderOverworldWithPanel() string {
 				fillStyle := lipgloss.NewStyle().Foreground(fillColor)
 				mapContent.WriteString(fillStyle.Render(string(fillChar)))
 
-				// Also fill the diagonal/corner space
 				if x < rowWidth-1 {
 					mapContent.WriteString(fillStyle.Render(string(fillChar)))
 				}
@@ -848,38 +939,7 @@ func (m Model) renderOverworldWithPanel() string {
 		}
 	}
 
-	// Style the map panel with border
-	mapPanel := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(secondaryColor).
-		Padding(2, 3).
-		Width(mapWidth).
-		Render(mapContent.String())
-
-	// Right panel - player info
-	rightPanel := views.RenderPlayerPanel(m.player, rightPanelWidth)
-
-	// Join left (map) and right (empty) panels horizontally
-	mainContent := lipgloss.JoinHorizontal(
-		lipgloss.Top,
-		mapPanel,
-		"  ",
-		rightPanel,
-	)
-
-	s.WriteString(mainContent)
-	s.WriteString("\n\n")
-
-	// Bottom: Controls (full width)
-	controls := lipgloss.NewStyle().
-		Foreground(mutedColor).
-		Align(lipgloss.Center).
-		Width(m.width).
-		Render("WASD/Arrows: move  •  b: back  •  q: quit")
-
-	s.WriteString(controls)
-
-	return s.String()
+	return mapContent.String()
 }
 
 // getSmartFill returns the appropriate fill character based on surrounding tiles
