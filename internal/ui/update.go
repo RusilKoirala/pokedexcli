@@ -360,6 +360,16 @@ func (m Model) handleTalkToNPC() (tea.Model, tea.Cmd) {
 		if npcFound != nil {
 			m.currentDialogue = dialogue.NewDialogueBox(npcFound.Name, npcFound.Dialogue)
 			m.dialogueActive = true
+
+			// Unlock any quests this NPC gives (first time talking to them)
+			newQuests := m.questManager.UnlockQuest(npcFound.ID)
+			if len(newQuests) > 0 {
+				m.questManager.Save()
+				for _, title := range newQuests {
+					m.message = fmt.Sprintf("📋 New Quest: %s!", title)
+				}
+			}
+
 			if npcFound.IsTrainer && !npcFound.IsDefeated {
 				m.activeTrainerID = npcFound.ID
 			} else {

@@ -26,17 +26,21 @@ func RenderQuestInfo(qm *quest.QuestManager) string {
 
 	s.WriteString(questTitleStyle.Render("= QUESTS =") + "\n\n")
 
-	if len(activeQuests) > 0 {
-		q := activeQuests[0]
+	shown := 0
+	for _, q := range activeQuests {
+		if shown >= 1 {
+			break
+		}
 		s.WriteString(questPanelStyle.Render(q.Title) + "\n")
-
 		progressBar := fmt.Sprintf("[%d/%d]", q.Progress, q.Target)
-		s.WriteString(questProgressStyle.Render(progressBar) + "\n")
+		s.WriteString(questProgressStyle.Render(progressBar) + "\n\n")
+		shown++
 	}
 
 	if len(completedQuests) > 0 {
-		s.WriteString("\n")
-		s.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#95E1D3")).Render(fmt.Sprintf("✓ %d Quest(s) Ready!", len(completedQuests))) + "\n")
+		s.WriteString(lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#95E1D3")).
+			Render(fmt.Sprintf("✓ %d Quest(s) Ready!", len(completedQuests))) + "\n")
 	}
 
 	return s.String()

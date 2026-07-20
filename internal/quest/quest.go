@@ -21,6 +21,7 @@ const (
 	QuestActive    QuestStatus = "active"
 	QuestCompleted QuestStatus = "completed"
 	QuestClaimed   QuestStatus = "claimed"
+	QuestLocked    QuestStatus = "locked"
 )
 
 type Quest struct {
@@ -155,7 +156,7 @@ func InitializeDefaultQuests() *QuestManager {
 		Type:        QuestCatchPokemon,
 		Target:      3,
 		Progress:    0,
-		Status:      QuestActive,
+		Status:      QuestLocked,
 		RewardXP:    100,
 		RewardLevel: 0,
 		GiverNPCID:  "prof_oak",
@@ -168,7 +169,7 @@ func InitializeDefaultQuests() *QuestManager {
 		Type:        QuestReachLevel,
 		Target:      5,
 		Progress:    0,
-		Status:      QuestActive,
+		Status:      QuestLocked,
 		RewardXP:    0,
 		RewardLevel: 5,
 		GiverNPCID:  "prof_oak",
@@ -181,7 +182,7 @@ func InitializeDefaultQuests() *QuestManager {
 		Type:        QuestDefeatTrainer,
 		Target:      1,
 		Progress:    0,
-		Status:      QuestActive,
+		Status:      QuestLocked,
 		RewardXP:    150,
 		RewardLevel: 0,
 		GiverNPCID:  "bug_catcher",
@@ -229,4 +230,17 @@ func (qm *QuestManager) OnDefeatTrainer(trainerID string) []string {
 		}
 	}
 	return completed
+}
+
+// unlock quest
+func (qm *QuestManager) UnlockQuest(npcID string) []string {
+	unlocked := []string{}
+
+	for _, quest := range qm.Quest {
+		if quest.GiverNPCID == npcID && quest.Status == QuestLocked {
+			quest.Status = QuestActive
+			unlocked = append(unlocked, quest.Title)
+		}
+	}
+	return unlocked
 }
