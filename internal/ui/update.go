@@ -165,7 +165,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.message = fmt.Sprintf("🔒 You need Level %d to enter %s!", req.RequiredLevel, req.Name)
 					return m, nil
 				}
-				
+
 				m.currentLocation = m.cursor
 				m.currentMap = town.GetMap(m.currentLocation)
 				m.playerX = m.currentMap.StartX
@@ -851,6 +851,23 @@ func (m Model) handleMove(dx, dy int) (tea.Model, tea.Cmd) {
 		m.playerY = newY
 		m.stepCount++
 		m.encounterSteps++
+
+		if trainer := m.npcManager.GetTrainerInSight(newX, newY, m.currentLocation); trainer != nil {
+			m.currentDialogue = dialogue.NewDialogueBox(trainer.Name, trainer.Dialogue)
+			m.dialogueActive = true
+			m.activeTrainerID = trainer.ID
+
+			newQuests := m.questManager.UnlockQuest(trainer.ID)
+
+			if len(newQuests) > 0 {
+				m.questManager.Save()
+				for _, title := range newQuests {
+					m.message = fmt.Sprintf("📋 New Quest: %s!", title)
+				}
+			}
+
+			return m, dialogueTick()
+		}
 
 		if m.currentMap.IsGrass(newX, newY) {
 			if m.encounterSteps >= 5+rand.Intn(5) {

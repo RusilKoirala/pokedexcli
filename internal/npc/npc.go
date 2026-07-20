@@ -11,16 +11,17 @@ const (
 
 // npc
 type NPC struct {
-	ID         string
-	Name       string
-	Type       NPCType
-	X          int
-	Y          int
-	LocationID int
-	Dialogue   []string
-	IsTrainer  bool
-	IsDefeated bool
-	PokemonID  int
+	ID          string
+	Name        string
+	Type        NPCType
+	X           int
+	Y           int
+	LocationID  int
+	Dialogue    []string
+	IsTrainer   bool
+	IsDefeated  bool
+	PokemonID   int
+	LineOfSight int
 }
 
 // it handles all npcs
@@ -65,6 +66,36 @@ func (m *NPCManager) IsNPCPosition(x, y int, locationID int) bool {
 	return m.GetNPCAt(x, y, locationID) != nil
 }
 
+/*
+this functions check in all direction if there is player or not , if player is found :D we send our trainer to fight otherwise we leave
+*/
+func (m *NPCManager) GetTrainerInSight(playerX, playerY, locationID int) *NPC {
+	for _, npc := range m.NPCs {
+		if npc.LocationID != locationID || !npc.IsTrainer || npc.IsDefeated || npc.LineOfSight == 0 {
+			continue
+		}
+
+		directions := []struct{ dx, dy int }{
+			{0, -1},
+			{0, 1},
+			{-1, 0},
+			{1, 0},
+		}
+
+		for _, d := range directions {
+			for dist := 1; dist <= npc.LineOfSight; dist++ {
+				checkX := npc.X + d.dx*dist
+				checkY := npc.Y + d.dy*dist
+
+				if checkX == playerX && checkY == playerY {
+					return npc
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // create all npc for game
 func InitializeNPCs() *NPCManager {
 	manager := NewNPCManager()
@@ -80,7 +111,7 @@ func InitializeNPCs() *NPCManager {
 		ID:         "prof_oak",
 		Name:       "Professor Oak",
 		Type:       NPCProffessor,
-		X:          12,
+		X:          5,
 		Y:          6,
 		LocationID: 0,
 		Dialogue: []string{
@@ -96,8 +127,8 @@ func InitializeNPCs() *NPCManager {
 		ID:         "mom",
 		Name:       "Mom",
 		Type:       NPCTownsFolk,
-		X:          10,
-		Y:          2,
+		X:          4,
+		Y:          17,
 		LocationID: 0,
 		Dialogue: []string{
 			"Hi sweetie! I'm so proud of you for starting",
@@ -108,15 +139,16 @@ func InitializeNPCs() *NPCManager {
 
 	// bug catcher
 	manager.AddNPC(&NPC{
-		ID:         "bug_catcher",
-		Name:       "Bug Catcher Jimmy",
-		Type:       NPCTrainer,
-		X:          10,
-		Y:          7,
-		LocationID: 1,
-		IsTrainer:  true,
-		IsDefeated: false,
-		PokemonID:  10,
+		ID:          "bug_catcher",
+		Name:        "Bug Catcher Jimmy",
+		Type:        NPCTrainer,
+		X:           12,
+		Y:           10,
+		LocationID:  1,
+		IsTrainer:   true,
+		IsDefeated:  false,
+		PokemonID:   10,
+		LineOfSight: 3,
 		Dialogue: []string{
 			"Hey! I love bug Pokemon!",
 			"Have you caught any Caterpie or Weedle yet?",
@@ -129,8 +161,8 @@ func InitializeNPCs() *NPCManager {
 		ID:         "hiker",
 		Name:       "Hiker Dan",
 		Type:       NPCTownsFolk,
-		X:          8,
-		Y:          8,
+		X:          14,
+		Y:          9,
 		LocationID: 2,
 		Dialogue: []string{
 			"These caves are full of Geodude and Zubat!",

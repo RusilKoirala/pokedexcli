@@ -25,27 +25,32 @@ func RenderMap(worldMap *town.WorldMap, playerX, playerY int, npcMgr *npc.NPCMan
 			Height(layout.GameHeight).
 			Render("No map loaded")
 	}
-	
+
 	var mapContent strings.Builder
-	
+
 	// Get NPCs for current location
 	npcsHere := npcMgr.GetNPCsForLocation(locationID)
 	npcPositions := make(map[string]bool)
-	for _, npc := range npcsHere {
-		key := fmt.Sprintf("%d,%d", npc.X, npc.Y)
+	trainerPositions := make(map[string]bool)
+	for _, n := range npcsHere {
+		key := fmt.Sprintf("%d,%d", n.X, n.Y)
 		npcPositions[key] = true
+		if n.IsTrainer && !n.IsDefeated {
+			aboveKey := fmt.Sprintf("%d,%d", n.X, n.Y-1)
+			trainerPositions[aboveKey] = true
+		}
 	}
-	
+
 	// Render ONLY actual tiles - NO SPACING, NO DUPLICATES
 	for y := 0; y < worldMap.Height; y++ {
 		rowWidth := len(worldMap.Tiles[y])
-		
+
 		for x := 0; x < rowWidth; x++ {
 			key := fmt.Sprintf("%d,%d", x, y)
-			
+
 			var char string
 			var color lipgloss.Color
-			
+
 			if x == playerX && y == playerY {
 				// Player sprite
 				char = "⚙"
@@ -54,22 +59,25 @@ func RenderMap(worldMap *town.WorldMap, playerX, playerY int, npcMgr *npc.NPCMan
 				// NPC sprite
 				char = "Φ"
 				color = lipgloss.Color("#FF6B6B")
+			} else if trainerPositions[key] {
+				char = "!"
+				color = lipgloss.Color("#FF0000")
 			} else {
 				// Regular tile
 				tile := worldMap.Tiles[y][x]
 				char = string(tile)
 				color = GetTileColor(tile)
 			}
-			
+
 			style := lipgloss.NewStyle().Foreground(color).Bold(true)
 			mapContent.WriteString(style.Render(char))
 		}
-		
+
 		if y < worldMap.Height-1 {
 			mapContent.WriteString("\n")
 		}
 	}
-	
+
 	// Fixed size with border and padding
 	return mapBorderStyle.
 		Width(layout.GameWidth).
