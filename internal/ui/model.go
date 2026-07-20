@@ -5,6 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rusilkoirala/pokedexcli/internal/battle"
+	"github.com/rusilkoirala/pokedexcli/internal/player"
 	"github.com/rusilkoirala/pokedexcli/internal/pokeapi"
 	"github.com/rusilkoirala/pokedexcli/internal/pokedex"
 	"github.com/rusilkoirala/pokedexcli/internal/town"
@@ -14,6 +15,7 @@ type view int
 
 const (
 	startView view = iota
+	starterSelectionView
 	menuView
 	creditsView
 	listView
@@ -78,16 +80,24 @@ type Model struct {
 	stepCount      int
 	encounterSteps int
 
+	player *player.Player
+
 	width  int
 	height int
 }
 
 func NewModel() Model {
 	dex, _ := pokedex.Load()
+	playerData, _ := player.Load()
+
+	// Always start with the start screen
+	initialView := startView
+
 	return Model{
 		api:               pokeapi.NewClient(),
 		pokedex:           dex,
-		currentView:       startView,
+		player:            playerData,
+		currentView:       initialView,
 		cursor:            0,
 		page:              0,
 		currentLocation:   0,

@@ -9,6 +9,7 @@ import (
 	"github.com/qeesung/image2ascii/convert"
 	"github.com/rusilkoirala/pokedexcli/internal/locations"
 	"github.com/rusilkoirala/pokedexcli/internal/town"
+	"github.com/rusilkoirala/pokedexcli/internal/ui/views"
 )
 
 var (
@@ -137,6 +138,8 @@ func (m Model) View() string {
 	switch m.currentView {
 	case startView:
 		content = m.renderStartScreen()
+	case starterSelectionView:
+		content = views.RenderStarterSelection(m.cursor, m.width, m.height)
 	case menuView:
 		content = m.renderMenu()
 	case creditsView:
@@ -144,7 +147,7 @@ func (m Model) View() string {
 	case listView:
 		content = m.renderList()
 	case overworldView:
-		content = m.renderOverworld()
+		content = m.renderOverworldWithPanel()
 	case detailView:
 		content = m.renderDetail()
 	case myPokedexView:
@@ -776,7 +779,7 @@ func (m Model) renderMoveBoxes() string {
 	return "\n" + movesRow + "\n\n" + help
 }
 
-func (m Model) renderOverworld() string {
+func (m Model) renderOverworldWithPanel() string {
 	if m.currentMap == nil {
 		return "No map loaded"
 	}
@@ -802,7 +805,7 @@ func (m Model) renderOverworld() string {
 
 	for y := 0; y < m.currentMap.Height; y++ {
 		rowWidth := len(m.currentMap.Tiles[y])
-		
+
 		// First pass: render actual row with horizontal spacing
 		for x := 0; x < rowWidth; x++ {
 			if x == m.playerX && y == m.playerY {
@@ -835,7 +838,7 @@ func (m Model) renderOverworld() string {
 				fillColor := getTileColor(fillChar)
 				fillStyle := lipgloss.NewStyle().Foreground(fillColor)
 				mapContent.WriteString(fillStyle.Render(string(fillChar)))
-				
+
 				// Also fill the diagonal/corner space
 				if x < rowWidth-1 {
 					mapContent.WriteString(fillStyle.Render(string(fillChar)))
@@ -853,11 +856,8 @@ func (m Model) renderOverworld() string {
 		Width(mapWidth).
 		Render(mapContent.String())
 
-	// Right panel - empty space
-	rightPanel := lipgloss.NewStyle().
-		Width(rightPanelWidth).
-		Height((m.currentMap.Height * 2) + 6). // Account for spacing
-		Render("")
+	// Right panel - player info
+	rightPanel := views.RenderPlayerPanel(m.player, rightPanelWidth)
 
 	// Join left (map) and right (empty) panels horizontally
 	mainContent := lipgloss.JoinHorizontal(
@@ -885,7 +885,7 @@ func (m Model) renderOverworld() string {
 // getSmartFill returns the appropriate fill character based on surrounding tiles
 func getSmartFill(worldMap *town.WorldMap, x, y int) town.TileType {
 	currentTile := worldMap.Tiles[y][x]
-	
+
 	// Special tiles (houses, signs, trees, etc.) should NOT be duplicated in fill
 	specialTiles := map[town.TileType]bool{
 		town.TileHouse:  true,
@@ -894,11 +894,11 @@ func getSmartFill(worldMap *town.WorldMap, x, y int) town.TileType {
 		town.TileCave:   true,
 		town.TileTree:   true,
 	}
-	
+
 	if specialTiles[currentTile] {
 		// Look at neighbors to determine what to fill with
 		neighbors := []town.TileType{}
-		
+
 		// Check right
 		if x+1 < len(worldMap.Tiles[y]) {
 			neighbors = append(neighbors, worldMap.Tiles[y][x+1])
@@ -915,7 +915,7 @@ func getSmartFill(worldMap *town.WorldMap, x, y int) town.TileType {
 		if y > 0 && x < len(worldMap.Tiles[y-1]) {
 			neighbors = append(neighbors, worldMap.Tiles[y-1][x])
 		}
-		
+
 		// Count grass vs path neighbors
 		grassCount := 0
 		pathCount := 0
@@ -926,7 +926,7 @@ func getSmartFill(worldMap *town.WorldMap, x, y int) town.TileType {
 				pathCount++
 			}
 		}
-		
+
 		// Return most common neighbor type
 		if grassCount > pathCount {
 			return town.TileGrass
@@ -935,7 +935,7 @@ func getSmartFill(worldMap *town.WorldMap, x, y int) town.TileType {
 		}
 		return town.TileGrass // default
 	}
-	
+
 	// For regular tiles, just duplicate them
 	return currentTile
 }

@@ -2,7 +2,6 @@ package pokedex
 
 import (
 	"encoding/json"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"time"
@@ -23,20 +22,17 @@ func New() *Pokedex {
 	}
 }
 
-// catch a pokemon (50% success rate)
+// catch a pokemon - always succeeds (game logic handles catch rate)
 func (p *Pokedex) Catch(name string) bool {
 	if _, exists := p.Pokemon[name]; exists {
-		return false
+		return false // Already caught
 	}
 
-	if rand.Float64() < 0.5 {
-		p.Pokemon[name] = CaughtPokemon{
-			Name:     name,
-			CaughtAt: time.Now(),
-		}
-		return true
+	p.Pokemon[name] = CaughtPokemon{
+		Name:     name,
+		CaughtAt: time.Now(),
 	}
-	return false
+	return true
 }
 
 // if pokemon in pokedex

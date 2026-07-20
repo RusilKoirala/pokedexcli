@@ -10,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rusilkoirala/pokedexcli/internal/battle"
 	"github.com/rusilkoirala/pokedexcli/internal/locations"
+	"github.com/rusilkoirala/pokedexcli/internal/player"
 	"github.com/rusilkoirala/pokedexcli/internal/pokeapi"
 	"github.com/rusilkoirala/pokedexcli/internal/town"
 )
@@ -54,6 +55,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "w", "up":
+			if m.currentView == starterSelectionView {
+				if m.cursor > 0 {
+					m.cursor--
+				}
+				return m, nil
+			}
 			if m.currentView == overworldView {
 				return m.handleMove(0, -1)
 			}
@@ -70,6 +77,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "s", "down":
+			if m.currentView == starterSelectionView {
+				if m.cursor < 2 { // 3 starters (0,1,2)
+					m.cursor++
+				}
+				return m, nil
+			}
 			if m.currentView == overworldView {
 				return m.handleMove(0, 1)
 			}
@@ -121,6 +134,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "enter":
+			if m.currentView == starterSelectionView {
+				return m.handleStarterSelection()
+			}
 			if m.currentView == battleView {
 				return m.handleBattleAction()
 			}
@@ -248,14 +264,21 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 	switch m.currentView {
 	case startView:
 		switch m.cursor {
-		case 0:
-			m.currentView = menuView
-			m.cursor = 0
+		case 0: // Play
+			// Check if player has starter
+			if !m.player.HasStarter {
+				m.currentView = starterSelectionView
+				m.cursor = 0
+			} else {
+				m.currentView = menuView
+				m.cursor = 0
+			}
 		case 1:
 			m.currentView = creditsView
 			m.cursor = 0
 		case 2:
 			m.pokedex.Save()
+			m.player.Save()
 			return m, tea.Quit
 		}
 	case menuView:
@@ -458,7 +481,17 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 			m.encounterState = caught
 			m.pokedex.Catch(m.encounterPokemon.Name)
 			m.pokedex.Save()
-			m.message = fmt.Sprintf("Gotcha! %s was caught!", m.encounterPokemon.Name)
+			
+			// Give XP for catching
+			xp := player.GetXPForAction("catch")
+			leveledUp := m.player.GainXP(xp)
+			m.player.Save()
+			
+			if leveledUp {
+				m.message = fmt.Sprintf("Gotcha! %s was caught! +%d XP! Level up! Now Level %d!", m.encounterPokemon.Name, xp, m.player.Level)
+			} else {
+				m.message = fmt.Sprintf("Gotcha! %s was caught! +%d XP!", m.encounterPokemon.Name, xp)
+			}
 		} else {
 			m.encounterState = escaped
 			m.message = fmt.Sprintf("%s broke free and escaped!", m.encounterPokemon.Name)
@@ -564,8 +597,25 @@ func (m Model) executeBattleAttack() tea.Cmd {
 		playerMsg := m.currentBattle.PlayerAttack(m.selectedMoveIndex)
 
 		if m.currentBattle.IsOver {
+			// Give XP based on win/lose
+			var xp int
+			if m.currentBattle.PlayerWon {
+				xp = player.GetXPForAction("battle_win")
+			} else {
+				xp = player.GetXPForAction("battle_lose")
+			}
+			
+			leveledUp := m.player.GainXP(xp)
+			m.player.Save()
+			
+			if leveledUp {
+				return battleActionMsg{
+					message: playerMsg + fmt.Sprintf("\n+%d XP! Level up! Now Level %d!", xp, m.player.Level),
+				}
+			}
+			
 			return battleActionMsg{
-				message: playerMsg,
+				message: playerMsg + fmt.Sprintf("\n+%d XP!", xp),
 			}
 		}
 
@@ -591,10 +641,23 @@ func (m Model) executeBattleCatch() tea.Cmd {
 		if rand.Float64() < catchRate {
 			m.pokedex.Catch(m.encounterPokemon.Name)
 			m.pokedex.Save()
+			
+			// Give XP for catching in battle
+			xp := player.GetXPForAction("catch")
+			leveledUp := m.player.GainXP(xp)
+			m.player.Save()
+			
 			m.currentBattle.IsOver = true
 			m.currentBattle.PlayerWon = true
+			
+			if leveledUp {
+				return battleActionMsg{
+					message: fmt.Sprintf("You caught %s! +%d XP! Level up! Now Level %d!", m.encounterPokemon.Name, xp, m.player.Level),
+				}
+			}
+			
 			return battleActionMsg{
-				message: "You caught " + m.encounterPokemon.Name + "!",
+				message: fmt.Sprintf("You caught %s! +%d XP!", m.encounterPokemon.Name, xp),
 			}
 		}
 		return battleActionMsg{
@@ -652,4 +715,30 @@ func (m Model) triggerWildEncounter() (tea.Model, tea.Cmd) {
 	m.message = ""
 
 	return m, m.loadEncounter(pokemonID)
+}
+
+// handleStarterSelection processes starter choice
+func (m Model) handleStarterSelection() (tea.Model, tea.Cmd) {
+	// Import views package to access Starters
+	starter := []struct {
+		Name string
+	}{
+		{"Charmander"},
+		{"Bulbasaur"},
+		{"Squirtle"},
+	}[m.cursor]
+	
+	// Set the starter
+	m.player.SetStarter(starter.Name)
+	m.player.Save()
+	
+	// Add starter to Pokedex!
+	m.pokedex.Catch(starter.Name)
+	m.pokedex.Save()
+	
+	m.message = fmt.Sprintf("You chose %s! Your journey begins!", starter.Name)
+	m.currentView = menuView
+	m.cursor = 0
+	
+	return m, nil
 }
