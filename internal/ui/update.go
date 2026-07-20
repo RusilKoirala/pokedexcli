@@ -159,6 +159,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if m.currentView == exploreView {
+				// Check if player can access this location
+				if !locations.CanAccess(m.cursor, m.player.Level) {
+					req := locations.GetRequirement(m.cursor)
+					m.message = fmt.Sprintf("🔒 You need Level %d to enter %s!", req.RequiredLevel, req.Name)
+					return m, nil
+				}
+				
 				m.currentLocation = m.cursor
 				m.currentMap = town.GetMap(m.currentLocation)
 				m.playerX = m.currentMap.StartX
@@ -189,8 +196,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.currentView == detailView && m.selectedPoke != nil {
 				return m.handleCatch()
 			} else if m.currentView == encounterView && m.encounterState == choosing {
+				if m.activeTrainerID != "" {
+					m.message = "You can't catch a trainer's Pokemon!"
+					return m, nil
+				}
 				return m.handleCatchWild()
 			} else if m.currentView == battleView {
+				if m.activeTrainerID != "" {
+					m.message = "You can't catch a trainer's Pokemon!"
+					return m, nil
+				}
 				return m, m.executeBattleCatch()
 			}
 		case " ", "space":
@@ -199,6 +214,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if !hasMore {
 					m.dialogueActive = false
 					m.currentDialogue = nil
+					if m.activeTrainerID != "" {
+						trainer := m.npcManager.NPCs[m.activeTrainerID]
+						pokemonID := trainer.PokemonID
+						if pokemonID == 0 {
+							pokemonID = 10 // Caterpie
+						}
+						m.currentView = encounterView
+						m.encounterState = appearing
+						m.message = ""
+						m.loading = true
+						return m, m.loadEncounter(pokemonID)
+					}
 				}
 				return m, nil
 			}
@@ -272,10 +299,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.loading = false
 
 		if m.currentBattle != nil && m.currentBattle.IsOver {
+			var completedQuests []string
 			if m.currentBattle.PlayerWon {
 				m.message = "You won the battle!"
+				if m.activeTrainerID != "" {
+					trainer := m.npcManager.NPCs[m.activeTrainerID]
+					trainer.IsDefeated = true
+					trainer.Dialogue = []string{
+						"You're really tough!",
+						"I need to train more bug Pokemon...",
+					}
+					completed := m.questManager.OnDefeatTrainer(m.activeTrainerID)
+					completedQuests = append(completedQuests, completed...)
+					m.questManager.Save()
+				}
 			} else {
 				m.message = "You lost the battle!"
+			}
+
+			// Check level quests if player leveled up during battle
+			levelQuests := m.questManager.OnLevelUp(m.player.Level)
+			if len(levelQuests) > 0 {
+				completedQuests = append(completedQuests, levelQuests...)
+				m.questManager.Save()
+			}
+
+			for _, q := range completedQuests {
+				m.message += fmt.Sprintf("\n✓ Quest Complete: %s!", q)
 			}
 		}
 
@@ -310,6 +360,11 @@ func (m Model) handleTalkToNPC() (tea.Model, tea.Cmd) {
 		if npcFound != nil {
 			m.currentDialogue = dialogue.NewDialogueBox(npcFound.Name, npcFound.Dialogue)
 			m.dialogueActive = true
+			if npcFound.IsTrainer && !npcFound.IsDefeated {
+				m.activeTrainerID = npcFound.ID
+			} else {
+				m.activeTrainerID = ""
+			}
 			return m, dialogueTick()
 		}
 
@@ -411,11 +466,13 @@ func (m Model) handleBack() (tea.Model, tea.Cmd) {
 	case battleView:
 		m.currentView = overworldView // Return to overworld instead of exploreView
 		m.currentBattle = nil
+		m.activeTrainerID = ""
 
 	case encounterView:
 		if m.encounterState == caught || m.encounterState == escaped {
 			m.currentView = overworldView // Return to overworld instead of exploreView
 			m.encounterState = appearing
+			m.activeTrainerID = ""
 		}
 	}
 
@@ -508,6 +565,7 @@ func (m Model) handleRun() (tea.Model, tea.Cmd) {
 	// Immediately return to overworld, no message screen
 	m.currentView = overworldView
 	m.encounterState = appearing
+	m.activeTrainerID = ""
 	return m, nil
 }
 
@@ -540,16 +598,33 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 			m.pokedex.Catch(m.encounterPokemon.Name)
 			m.pokedex.Save()
 
+			// Update quest progress for catches
+			completedQuests := m.questManager.OnCatchPokemon()
+			m.questManager.Save()
+
 			// Give XP for catching
 			xp := player.GetXPForAction("catch")
 			leveledUp := m.player.GainXP(xp)
 			m.player.Save()
 
+			// Build message
+			msg := fmt.Sprintf("Gotcha! %s was caught! +%d XP!", m.encounterPokemon.Name, xp)
+
 			if leveledUp {
-				m.message = fmt.Sprintf("Gotcha! %s was caught! +%d XP! Level up! Now Level %d!", m.encounterPokemon.Name, xp, m.player.Level)
-			} else {
-				m.message = fmt.Sprintf("Gotcha! %s was caught! +%d XP!", m.encounterPokemon.Name, xp)
+				msg = fmt.Sprintf("%s Level up! Now Level %d!", msg, m.player.Level)
+
+				// Check level quests
+				levelQuests := m.questManager.OnLevelUp(m.player.Level)
+				completedQuests = append(completedQuests, levelQuests...)
+				m.questManager.Save()
 			}
+
+			// Add quest completion messages
+			for _, questTitle := range completedQuests {
+				msg = fmt.Sprintf("%s\n✓ Quest Complete: %s!", msg, questTitle)
+			}
+
+			m.message = msg
 		} else {
 			m.encounterState = escaped
 			m.message = fmt.Sprintf("%s broke free and escaped!", m.encounterPokemon.Name)
@@ -700,6 +775,10 @@ func (m Model) executeBattleCatch() tea.Cmd {
 			m.pokedex.Catch(m.encounterPokemon.Name)
 			m.pokedex.Save()
 
+			// Update quest progress
+			completedQuests := m.questManager.OnCatchPokemon()
+			m.questManager.Save()
+
 			// Give XP for catching in battle
 			xp := player.GetXPForAction("catch")
 			leveledUp := m.player.GainXP(xp)
@@ -708,14 +787,24 @@ func (m Model) executeBattleCatch() tea.Cmd {
 			m.currentBattle.IsOver = true
 			m.currentBattle.PlayerWon = true
 
+			msg := fmt.Sprintf("You caught %s! +%d XP!", m.encounterPokemon.Name, xp)
+
 			if leveledUp {
-				return battleActionMsg{
-					message: fmt.Sprintf("You caught %s! +%d XP! Level up! Now Level %d!", m.encounterPokemon.Name, xp, m.player.Level),
-				}
+				msg = fmt.Sprintf("%s Level up! Now Level %d!", msg, m.player.Level)
+
+				// Check level quests
+				levelQuests := m.questManager.OnLevelUp(m.player.Level)
+				completedQuests = append(completedQuests, levelQuests...)
+				m.questManager.Save()
+			}
+
+			// Add quest completions
+			for _, questTitle := range completedQuests {
+				msg = fmt.Sprintf("%s\n✓ Quest Complete: %s!", msg, questTitle)
 			}
 
 			return battleActionMsg{
-				message: fmt.Sprintf("You caught %s! +%d XP!", m.encounterPokemon.Name, xp),
+				message: msg,
 			}
 		}
 		return battleActionMsg{

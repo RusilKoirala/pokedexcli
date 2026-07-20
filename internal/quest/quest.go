@@ -129,7 +129,7 @@ func Load() (*QuestManager, error) {
 	filePath := filepath.Join(homeDir, ".pokedexcli", "quests.json")
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return
+		return InitializeDefaultQuests(), nil
 	}
 
 	data, err := os.ReadFile(filePath)

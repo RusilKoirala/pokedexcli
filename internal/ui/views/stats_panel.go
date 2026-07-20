@@ -6,29 +6,30 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/rusilkoirala/pokedexcli/internal/player"
+	"github.com/rusilkoirala/pokedexcli/internal/quest"
 	"github.com/rusilkoirala/pokedexcli/internal/ui/layout"
 )
 
 var (
 	statsPanelStyle = lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#4ECDC4")).
-		Padding(1, 1)
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("#4ECDC4")).
+			Padding(1, 1)
 
 	statsTitleStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FFE66D")).
-		Bold(true).
-		Align(lipgloss.Center)
+			Foreground(lipgloss.Color("#FFE66D")).
+			Bold(true).
+			Align(lipgloss.Center)
 
 	statsTextStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#F7F7F7"))
+			Foreground(lipgloss.Color("#F7F7F7"))
 
 	statsXPBarStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#95E1D3"))
+			Foreground(lipgloss.Color("#95E1D3"))
 )
 
-// RenderStatsPanel renders the fixed-size stats panel
-func RenderStatsPanel(p *player.Player) string {
+// renders the fixed size stats panel
+func RenderStatsPanel(p *player.Player, qm *quest.QuestManager) string {
 	var s strings.Builder
 
 	// Title
@@ -47,6 +48,12 @@ func RenderStatsPanel(p *player.Player) string {
 	if p.HasStarter {
 		s.WriteString(statsTitleStyle.Render("═ PARTNER ═") + "\n")
 		s.WriteString(statsTextStyle.Render(fmt.Sprintf("⚡ %s", p.StarterPokemon)) + "\n\n")
+	}
+
+	questInfo := RenderQuestInfo(qm)
+	if questInfo != "" {
+		s.WriteString("\n")
+		s.WriteString(questInfo)
 	}
 
 	// Spacing

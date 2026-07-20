@@ -10,6 +10,7 @@ import (
 	"github.com/rusilkoirala/pokedexcli/internal/player"
 	"github.com/rusilkoirala/pokedexcli/internal/pokeapi"
 	"github.com/rusilkoirala/pokedexcli/internal/pokedex"
+	"github.com/rusilkoirala/pokedexcli/internal/quest"
 	"github.com/rusilkoirala/pokedexcli/internal/town"
 )
 
@@ -85,6 +86,9 @@ type Model struct {
 	npcManager      *npc.NPCManager
 	currentDialogue *dialogue.DialogueBox
 	dialogueActive  bool
+	activeTrainerID string
+
+	questManager *quest.QuestManager
 
 	player *player.Player
 
@@ -97,7 +101,9 @@ func NewModel() Model {
 	playerData, _ := player.Load()
 
 	npcMgr := npc.InitializeNPCs()
-	// Always start with the start screen
+	questMgr, _ := quest.Load()
+
+	// always start with the start screen
 	initialView := startView
 
 	return Model{
@@ -106,6 +112,7 @@ func NewModel() Model {
 		npcManager:        npcMgr,
 		player:            playerData,
 		currentView:       initialView,
+		questManager:      questMgr,
 		cursor:            0,
 		page:              0,
 		currentLocation:   0,

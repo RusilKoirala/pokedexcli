@@ -458,44 +458,49 @@ func (m Model) renderMyPokedex() string {
 func (m Model) renderExplore() string {
 	var s strings.Builder
 
-	header := lipgloss.NewStyle().
+	title := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(accentColor).
-		Render("Exploration Mode")
+		Align(lipgloss.Center).
+		Width(60).
+		Render("🗺  EXPLORE THE WORLD")
 
-	s.WriteString(header + "\n")
-	s.WriteString(lipgloss.NewStyle().
-		Foreground(mutedColor).
-		Render(strings.Repeat("─", 50)) + "\n")
-	s.WriteString(helpStyle.Render("Choose a location and press 'e' to explore") + "\n\n")
+	s.WriteString(title + "\n\n")
 
+	// list locations with level requirements
 	for i := 0; i < locations.GetLocationCount(); i++ {
 		location := locations.GetLocation(i)
+		req := locations.GetRequirement(i)
 
-		if m.cursor == i {
-			s.WriteString(selectedStyle.Render("▸ "+location.Name) + "\n")
-			s.WriteString(lipgloss.NewStyle().
-				Foreground(mutedColor).
-				Italic(true).
-				PaddingLeft(4).
-				Render(location.Description) + "\n\n")
+		canAccess := locations.CanAccess(i, m.player.Level)
+
+		var line string
+		if i == m.cursor {
+			if canAccess {
+				line = selectedStyle.Render("▸ " + location.Name)
+			} else {
+				lockMsg := fmt.Sprintf("🔒 %s (Level %d Required)", location.Name, req.RequiredLevel)
+				line = lipgloss.NewStyle().
+					Foreground(lipgloss.Color("#8B9798")).
+					Render("  " + lockMsg)
+			}
 		} else {
-			s.WriteString(menuItemStyle.Render("  "+location.Name) + "\n\n")
+			if canAccess {
+				line = menuItemStyle.Render("  " + location.Name)
+			} else {
+				lockMsg := fmt.Sprintf("🔒 %s (Level %d)", location.Name, req.RequiredLevel)
+				line = lipgloss.NewStyle().
+					Foreground(lipgloss.Color("#4A4A4A")).
+					Render("  " + lockMsg)
+			}
 		}
+
+		s.WriteString(line + "\n")
 	}
 
-	// Stats
-	statsText := fmt.Sprintf("Encounters: %d  │  Caught: %d", m.totalEncounters, m.pokedex.Count())
-	statsBox := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(secondaryColor).
-		Foreground(textColor).
-		Padding(0, 2).
-		Render(statsText)
+	s.WriteString("\n" + helpStyle.Render("↑/↓: select  •  enter: explore  •  b: back"))
 
-	s.WriteString(statsBox + "\n\n")
-	s.WriteString(helpStyle.Render("↑/↓: navigate  •  e: explore  •  b: back"))
-	return s.String()
+	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, s.String())
 }
 
 func (m Model) renderEncounter() string {
@@ -515,7 +520,13 @@ func (m Model) renderEncounter() string {
 
 	switch m.encounterState {
 	case appearing, choosing:
-		wildText := fmt.Sprintf("A wild %s appeared!", strings.ToUpper(m.encounterPokemon.Name))
+		var wildText string
+		if m.activeTrainerID != "" {
+			trainer := m.npcManager.NPCs[m.activeTrainerID]
+			wildText = fmt.Sprintf("Trainer %s challenged you to a battle!", trainer.Name)
+		} else {
+			wildText = fmt.Sprintf("A wild %s appeared!", strings.ToUpper(m.encounterPokemon.Name))
+		}
 
 		encounterHeader := lipgloss.NewStyle().
 			Foreground(primaryColor).
@@ -544,23 +555,34 @@ func (m Model) renderEncounter() string {
 		}
 		s.WriteString("\n" + infoLine + "\n\n")
 
-		if m.pokedex.Has(m.encounterPokemon.Name) {
-			s.WriteString(lipgloss.NewStyle().
-				Foreground(mutedColor).
-				Render("Already in your Pokedex") + "\n\n")
+		if m.activeTrainerID == "" {
+			if m.pokedex.Has(m.encounterPokemon.Name) {
+				s.WriteString(lipgloss.NewStyle().
+					Foreground(mutedColor).
+					Render("Already in your Pokedex") + "\n\n")
+			}
+
+			catchRate := m.calculateCatchRate() * 100
+			catchRateText := lipgloss.NewStyle().
+				Foreground(accentColor).
+				Render(fmt.Sprintf("Catch Rate: %.0f%%", catchRate))
+			s.WriteString(catchRateText + "\n\n")
 		}
 
-		catchRate := m.calculateCatchRate() * 100
-		catchRateText := lipgloss.NewStyle().
-			Foreground(accentColor).
-			Render(fmt.Sprintf("Catch Rate: %.0f%%", catchRate))
-		s.WriteString(catchRateText + "\n\n")
-
-		actionsBox := lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(secondaryColor).
-			Padding(0, 2).
-			Render("[b] Battle  │  [c] Catch  │  [r] Run")
+		var actionsBox string
+		if m.activeTrainerID != "" {
+			actionsBox = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(secondaryColor).
+				Padding(0, 2).
+				Render("[b] Battle  │  [r] Run")
+		} else {
+			actionsBox = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(secondaryColor).
+				Padding(0, 2).
+				Render("[b] Battle  │  [c] Catch  │  [r] Run")
+		}
 		s.WriteString(actionsBox)
 
 	case throwing:
@@ -783,7 +805,7 @@ func (m Model) renderMoveBoxes() string {
 // renderFixedLayout renders the FIXED LAYOUT with game, stats, and dialogue
 func (m Model) renderFixedLayout() string {
 	var screen strings.Builder
-	
+
 	// Top row: Location name centered
 	locationName := lipgloss.NewStyle().
 		Bold(true).
@@ -791,26 +813,26 @@ func (m Model) renderFixedLayout() string {
 		Align(lipgloss.Center).
 		Width(layout.TotalWidth).
 		Render("📍 " + m.currentMap.Name)
-	
+
 	screen.WriteString(locationName + "\n\n")
-	
+
 	// Middle row: Game area (left) + Stats panel (right)
 	gameArea := views.RenderMap(m.currentMap, m.playerX, m.playerY, m.npcManager, m.currentLocation)
-	statsPanel := views.RenderStatsPanel(m.player)
-	
+	statsPanel := views.RenderStatsPanel(m.player, m.questManager)
+
 	middleRow := lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		gameArea,
 		" ",
 		statsPanel,
 	)
-	
+
 	screen.WriteString(middleRow + "\n\n")
-	
+
 	// Bottom row: Dialogue box
 	dialogueBox := views.RenderDialogue(m.currentDialogue)
 	screen.WriteString(dialogueBox)
-	
+
 	return screen.String()
 }
 

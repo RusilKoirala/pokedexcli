@@ -30,7 +30,7 @@ func RenderQuestInfo(qm *quest.QuestManager) string {
 		q := activeQuests[0]
 		s.WriteString(questPanelStyle.Render(q.Title) + "\n")
 
-		progressBar := fmt.Sprint("[%d/%d]", q.Progress, q.Target)
+		progressBar := fmt.Sprintf("[%d/%d]", q.Progress, q.Target)
 		s.WriteString(questProgressStyle.Render(progressBar) + "\n")
 	}
 

@@ -116,6 +116,7 @@ func InitializeNPCs() *NPCManager {
 		LocationID: 1,
 		IsTrainer:  true,
 		IsDefeated: false,
+		PokemonID:  10,
 		Dialogue: []string{
 			"Hey! I love bug Pokemon!",
 			"Have you caught any Caterpie or Weedle yet?",
