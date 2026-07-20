@@ -188,6 +188,51 @@ func InitializeDefaultQuests() *QuestManager {
 		GiverNPCID:  "bug_catcher",
 	})
 
+	qm.AddQuest(&Quest{
+		ID:          "defeat_lass_lisa",
+		Title:       "Forest Lass Challenge",
+		Description: "Defeat Lass Lisa in Viridian Forest",
+		Type:        QuestDefeatTrainer,
+		Target:      1, Progress: 0, Status: QuestLocked,
+		RewardXP: 120, GiverNPCID: "lass_lisa",
+	})
+
+	qm.AddQuest(&Quest{
+		ID:          "defeat_hiker_dan",
+		Title:       "Cave Hiker Showdown",
+		Description: "Defeat Hiker Dan deep in Mt. Moon",
+		Type:        QuestDefeatTrainer,
+		Target:      1, Progress: 0, Status: QuestLocked,
+		RewardXP: 180, GiverNPCID: "hiker_dan",
+	})
+
+	qm.AddQuest(&Quest{
+		ID:          "defeat_youngster_joey",
+		Title:       "Youngster's Challenge",
+		Description: "Defeat Youngster Joey on Route 1",
+		Type:        QuestDefeatTrainer,
+		Target:      1, Progress: 0, Status: QuestLocked,
+		RewardXP: 100, GiverNPCID: "youngster_joey",
+	})
+
+	qm.AddQuest(&Quest{
+		ID:          "defeat_lass_iris",
+		Title:       "Route 1 Lass Battle",
+		Description: "Defeat Lass Iris on Route 1",
+		Type:        QuestDefeatTrainer,
+		Target:      1, Progress: 0, Status: QuestLocked,
+		RewardXP: 100, GiverNPCID: "lass_iris",
+	})
+
+	qm.AddQuest(&Quest{
+		ID:          "defeat_ranger_kim",
+		Title:       "Safari Zone Ranger",
+		Description: "Defeat Ranger Kim to prove yourself",
+		Type:        QuestDefeatTrainer,
+		Target:      1, Progress: 0, Status: QuestLocked,
+		RewardXP: 200, GiverNPCID: "ranger_kim",
+	})
+
 	return qm
 }
 

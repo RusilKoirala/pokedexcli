@@ -111,64 +111,105 @@ func InitializeNPCs() *NPCManager {
 		ID:         "prof_oak",
 		Name:       "Professor Oak",
 		Type:       NPCProffessor,
-		X:          5,
-		Y:          6,
+		X:          6,
+		Y:          5,
 		LocationID: 0,
 		Dialogue: []string{
 			"Ah, hello there! Welcome to the world of Pokemon!",
 			"My name is Oak. People call me the Pokemon Professor!",
-			"This world is inhabited by creatures called Pokemon!",
-			"Your adventure is just beginning. Good luck!",
+			"Head north to Viridian Forest to catch Pokemon!",
+			"Walk the path — but watch out for trainers!",
 		},
 	})
 
 	// MOM
 	manager.AddNPC(&NPC{
-		ID:         "mom",
-		Name:       "Mom",
-		Type:       NPCTownsFolk,
-		X:          4,
-		Y:          17,
-		LocationID: 0,
-		Dialogue: []string{
-			"Hi sweetie! I'm so proud of you for starting",
-			"your Pokemon journey!",
-			"Remember to call home once in a while!",
-		},
-	})
-
-	// bug catcher
-	manager.AddNPC(&NPC{
-		ID:          "bug_catcher",
-		Name:        "Bug Catcher Jimmy",
-		Type:        NPCTrainer,
-		X:           12,
-		Y:           10,
-		LocationID:  1,
-		IsTrainer:   true,
-		IsDefeated:  false,
+		ID:          "mom",
+		Name:        "Mom",
+		Type:        NPCTownsFolk,
+		X:           13,
+		Y:           6,
 		PokemonID:   10,
-		LineOfSight: 3,
+		LineOfSight: 5,
+		LocationID:  0,
 		Dialogue: []string{
-			"Hey! I love bug Pokemon!",
-			"Have you caught any Caterpie or Weedle yet?",
-			"They're the best!",
+			"Be careful out there sweetie!",
+			"Come back home if you get hurt!",
 		},
 	})
 
-	// hiker in mt. moon
 	manager.AddNPC(&NPC{
-		ID:         "hiker",
-		Name:       "Hiker Dan",
-		Type:       NPCTownsFolk,
-		X:          14,
-		Y:          9,
-		LocationID: 2,
+		ID: "bug_catcher", Name: "Bug Catcher Jimmy",
+		Type: NPCTrainer, X: 13, Y: 6, LocationID: 1,
+		IsTrainer: true, IsDefeated: false,
+		PokemonID: 10, LineOfSight: 5,
 		Dialogue: []string{
-			"These caves are full of Geodude and Zubat!",
-			"Watch your step, it's dark in here!",
+			"Hey! Stop right there!",
+			"Nobody passes without battling me first!",
 		},
 	})
 
+	// (viridian Forest)  Lass Lisa
+
+	manager.AddNPC(&NPC{
+		ID: "lass_lisa", Name: "Lass Lisa",
+		Type: NPCTrainer, X: 23, Y: 13, LocationID: 1,
+		IsTrainer: true, IsDefeated: false,
+		PokemonID: 35, LineOfSight: 5, // Clefairy
+		Dialogue: []string{
+			"La la la — oh! A challenger!",
+			"My Clefairy will defeat you!",
+		},
+	})
+
+	// Mt. Moon — Hiker Dan
+
+	manager.AddNPC(&NPC{
+		ID: "hiker_dan", Name: "Hiker Dan",
+		Type: NPCTrainer, X: 7, Y: 9, LocationID: 2,
+		IsTrainer: true, IsDefeated: false,
+		PokemonID: 74, LineOfSight: 5, // Geodude
+		Dialogue: []string{
+			"You dare enter MY cave?!",
+			"My Geodude has trained in these tunnels for years!",
+		},
+	})
+
+	// Route 1 — Youngster Joey
+
+	manager.AddNPC(&NPC{
+		ID: "youngster_joey", Name: "Youngster Joey",
+		Type: NPCTrainer, X: 6, Y: 4, LocationID: 3,
+		IsTrainer: true, IsDefeated: false,
+		PokemonID: 19, LineOfSight: 6, // Rattata
+		Dialogue: []string{
+			"Yo! I've been waiting for a challenger!",
+			"My Rattata is in the top percentage of all Rattata!",
+		},
+	})
+	// Route 1 — Lass Iris
+
+	manager.AddNPC(&NPC{
+		ID: "lass_iris", Name: "Lass Iris",
+		Type: NPCTrainer, X: 18, Y: 14, LocationID: 3,
+		IsTrainer: true, IsDefeated: false,
+		PokemonID: 39, LineOfSight: 6, // Jigglypuff
+		Dialogue: []string{
+			"Oh! You surprised me!",
+			"Now I'm going to have to battle you!",
+		},
+	})
+	// Safari Zone — Ranger Kim
+
+	manager.AddNPC(&NPC{
+		ID: "ranger_kim", Name: "Ranger Kim",
+		Type: NPCTrainer, X: 10, Y: 7, LocationID: 4,
+		IsTrainer: true, IsDefeated: false,
+		PokemonID: 128, LineOfSight: 6, // Tauros
+		Dialogue: []string{
+			"HALT! This is a protected safari zone!",
+			"Prove yourself worthy before exploring further!",
+		},
+	})
 	return manager
 }
