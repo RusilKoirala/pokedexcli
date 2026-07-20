@@ -9,6 +9,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rusilkoirala/pokedexcli/internal/battle"
+	"github.com/rusilkoirala/pokedexcli/internal/dialogue"
 	"github.com/rusilkoirala/pokedexcli/internal/locations"
 	"github.com/rusilkoirala/pokedexcli/internal/player"
 	"github.com/rusilkoirala/pokedexcli/internal/pokeapi"
@@ -29,6 +30,8 @@ type encounterMsg struct {
 	sprite  image.Image
 }
 
+type dialogueTickMsg time.Time
+
 type battleStartMsg struct {
 	battle       *battle.Battle
 	playerSprite image.Image
@@ -45,8 +48,22 @@ type errorMsg struct {
 
 type tickMsg time.Time
 
+func dialogueTick() tea.Cmd {
+	return tea.Tick(30*time.Millisecond, func(t time.Time) tea.Msg {
+		return dialogueTickMsg(t)
+	})
+}
+
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case dialogueTickMsg:
+		if m.dialogueActive && m.currentDialogue != nil {
+			if m.currentDialogue.Update() {
+				return m, dialogueTick()
+			}
+		}
+		return m, dialogueTick()
+
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
@@ -176,10 +193,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else if m.currentView == battleView {
 				return m, m.executeBattleCatch()
 			}
+		case " ", "space":
+			if m.dialogueActive && m.currentDialogue != nil {
+				hasMore := m.currentDialogue.NextLine()
+				if !hasMore {
+					m.dialogueActive = false
+					m.currentDialogue = nil
+				}
+				return m, nil
+			}
 
 		case "e":
 			if m.currentView == exploreView {
 				return m.handleExplore()
+			}
+
+			if m.currentView == overworldView && !m.dialogueActive {
+				return m.handleTalkToNPC()
 			}
 
 		case "r":
@@ -187,7 +217,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m.handleRun()
 			} else if m.currentView == battleView {
 				m.message = "You ran away!"
-				m.currentView = overworldView  // Return to overworld instead of exploreView
+				m.currentView = overworldView // Return to overworld instead of exploreView
 				m.currentBattle = nil
 			}
 
@@ -257,6 +287,34 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.loading = false
 	}
 
+	return m, nil
+}
+
+func (m Model) handleTalkToNPC() (tea.Model, tea.Cmd) {
+	if m.currentMap == nil {
+		return m, nil
+	}
+
+	positions := []struct{ dx, dy int }{
+		{0, -1},
+		{0, 1},
+		{-1, 0},
+		{1, 0},
+	}
+
+	for _, pos := range positions {
+		checkX := m.playerX + pos.dx
+		checkY := m.playerY + pos.dy
+
+		npcFound := m.npcManager.GetNPCAt(checkX, checkY, m.currentLocation)
+		if npcFound != nil {
+			m.currentDialogue = dialogue.NewDialogueBox(npcFound.Name, npcFound.Dialogue)
+			m.dialogueActive = true
+			return m, dialogueTick()
+		}
+
+	}
+	m.message = "No one here to talk to!"
 	return m, nil
 }
 
@@ -351,12 +409,12 @@ func (m Model) handleBack() (tea.Model, tea.Cmd) {
 		m.currentMap = nil
 
 	case battleView:
-		m.currentView = overworldView  // Return to overworld instead of exploreView
+		m.currentView = overworldView // Return to overworld instead of exploreView
 		m.currentBattle = nil
 
 	case encounterView:
 		if m.encounterState == caught || m.encounterState == escaped {
-			m.currentView = overworldView  // Return to overworld instead of exploreView
+			m.currentView = overworldView // Return to overworld instead of exploreView
 			m.encounterState = appearing
 		}
 	}
@@ -481,12 +539,12 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 			m.encounterState = caught
 			m.pokedex.Catch(m.encounterPokemon.Name)
 			m.pokedex.Save()
-			
+
 			// Give XP for catching
 			xp := player.GetXPForAction("catch")
 			leveledUp := m.player.GainXP(xp)
 			m.player.Save()
-			
+
 			if leveledUp {
 				m.message = fmt.Sprintf("Gotcha! %s was caught! +%d XP! Level up! Now Level %d!", m.encounterPokemon.Name, xp, m.player.Level)
 			} else {
@@ -501,7 +559,7 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 
 	case escaped:
 		time.Sleep(2 * time.Second)
-		m.currentView = overworldView  // Return to overworld instead of exploreView
+		m.currentView = overworldView // Return to overworld instead of exploreView
 		m.encounterState = appearing
 		return m, nil
 	}
@@ -604,16 +662,16 @@ func (m Model) executeBattleAttack() tea.Cmd {
 			} else {
 				xp = player.GetXPForAction("battle_lose")
 			}
-			
+
 			leveledUp := m.player.GainXP(xp)
 			m.player.Save()
-			
+
 			if leveledUp {
 				return battleActionMsg{
 					message: playerMsg + fmt.Sprintf("\n+%d XP! Level up! Now Level %d!", xp, m.player.Level),
 				}
 			}
-			
+
 			return battleActionMsg{
 				message: playerMsg + fmt.Sprintf("\n+%d XP!", xp),
 			}
@@ -641,21 +699,21 @@ func (m Model) executeBattleCatch() tea.Cmd {
 		if rand.Float64() < catchRate {
 			m.pokedex.Catch(m.encounterPokemon.Name)
 			m.pokedex.Save()
-			
+
 			// Give XP for catching in battle
 			xp := player.GetXPForAction("catch")
 			leveledUp := m.player.GainXP(xp)
 			m.player.Save()
-			
+
 			m.currentBattle.IsOver = true
 			m.currentBattle.PlayerWon = true
-			
+
 			if leveledUp {
 				return battleActionMsg{
 					message: fmt.Sprintf("You caught %s! +%d XP! Level up! Now Level %d!", m.encounterPokemon.Name, xp, m.player.Level),
 				}
 			}
-			
+
 			return battleActionMsg{
 				message: fmt.Sprintf("You caught %s! +%d XP!", m.encounterPokemon.Name, xp),
 			}
@@ -682,6 +740,11 @@ func (m Model) handleMove(dx, dy int) (tea.Model, tea.Cmd) {
 
 	newX := m.playerX + dx
 	newY := m.playerY + dy
+
+	// check if npc there
+	if m.npcManager.IsNPCPosition(newX, newY, m.currentLocation) {
+		return m, nil
+	}
 
 	// check if movement valid
 	if m.currentMap.IsWalkable(newX, newY) {
@@ -727,18 +790,18 @@ func (m Model) handleStarterSelection() (tea.Model, tea.Cmd) {
 		{"Bulbasaur"},
 		{"Squirtle"},
 	}[m.cursor]
-	
+
 	// Set the starter
 	m.player.SetStarter(starter.Name)
 	m.player.Save()
-	
+
 	// Add starter to Pokedex!
 	m.pokedex.Catch(starter.Name)
 	m.pokedex.Save()
-	
+
 	m.message = fmt.Sprintf("You chose %s! Your journey begins!", starter.Name)
 	m.currentView = menuView
 	m.cursor = 0
-	
+
 	return m, nil
 }

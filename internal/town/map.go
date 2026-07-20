@@ -18,6 +18,7 @@ const (
 	TileFlower   TileType = '❀'
 	TileFence    TileType = '═'
 	TilePlayer   TileType = '⚙'
+	TileNPC      TileType = 'Φ'
 )
 
 type WorldMap struct {
@@ -54,7 +55,7 @@ func (m *WorldMap) IsGrass(x, y int) bool {
 // parse map converts ascii art to string
 func parseMap(mapString string) [][]TileType {
 	lines := strings.Split(strings.TrimSpace(mapString), "\n")
-	
+
 	// Filter out empty lines
 	nonEmptyLines := []string{}
 	for _, line := range lines {
@@ -62,11 +63,11 @@ func parseMap(mapString string) [][]TileType {
 			nonEmptyLines = append(nonEmptyLines, line)
 		}
 	}
-	
+
 	if len(nonEmptyLines) == 0 {
 		return [][]TileType{}
 	}
-	
+
 	tiles := make([][]TileType, len(nonEmptyLines))
 
 	for y, line := range nonEmptyLines {
@@ -99,7 +100,7 @@ func GetMap(locationID int) *WorldMap {
 		Route1Map(),
 		SafariZoneMap(),
 	}
-	
+
 	if locationID < 0 || locationID >= len(maps) {
 		palletTown := PalletTownMap()
 		return &palletTown
@@ -130,7 +131,7 @@ func PalletTownMap() WorldMap {
                 ▓▓▓`
 
 	tiles := parseMap(mapArt)
-	
+
 	return WorldMap{
 		Name:         "Pallet Town",
 		Width:        getMapWidth(tiles),
@@ -166,7 +167,7 @@ func ViridianForestMap() WorldMap {
               ▓▓▓`
 
 	tiles := parseMap(mapArt)
-	
+
 	return WorldMap{
 		Name:         "Viridian Forest",
 		Width:        getMapWidth(tiles),
@@ -201,7 +202,7 @@ func MtMoonMap() WorldMap {
             ▓▓▓`
 
 	tiles := parseMap(mapArt)
-	
+
 	return WorldMap{
 		Name:         "Mt. Moon",
 		Width:        getMapWidth(tiles),
@@ -235,7 +236,7 @@ func Route1Map() WorldMap {
 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓`
 
 	tiles := parseMap(mapArt)
-	
+
 	return WorldMap{
 		Name:         "Route 1",
 		Width:        getMapWidth(tiles),
@@ -269,7 +270,7 @@ func SafariZoneMap() WorldMap {
 ═══════════════════════════`
 
 	tiles := parseMap(mapArt)
-	
+
 	return WorldMap{
 		Name:         "Safari Zone",
 		Width:        getMapWidth(tiles),

@@ -5,6 +5,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rusilkoirala/pokedexcli/internal/battle"
+	"github.com/rusilkoirala/pokedexcli/internal/dialogue"
+	"github.com/rusilkoirala/pokedexcli/internal/npc"
 	"github.com/rusilkoirala/pokedexcli/internal/player"
 	"github.com/rusilkoirala/pokedexcli/internal/pokeapi"
 	"github.com/rusilkoirala/pokedexcli/internal/pokedex"
@@ -80,6 +82,10 @@ type Model struct {
 	stepCount      int
 	encounterSteps int
 
+	npcManager      *npc.NPCManager
+	currentDialogue *dialogue.DialogueBox
+	dialogueActive  bool
+
 	player *player.Player
 
 	width  int
@@ -90,12 +96,14 @@ func NewModel() Model {
 	dex, _ := pokedex.Load()
 	playerData, _ := player.Load()
 
+	npcMgr := npc.InitializeNPCs()
 	// Always start with the start screen
 	initialView := startView
 
 	return Model{
 		api:               pokeapi.NewClient(),
 		pokedex:           dex,
+		npcManager:        npcMgr,
 		player:            playerData,
 		currentView:       initialView,
 		cursor:            0,

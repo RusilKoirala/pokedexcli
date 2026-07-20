@@ -942,6 +942,8 @@ func getSmartFill(worldMap *town.WorldMap, x, y int) town.TileType {
 
 func getTileColor(tile town.TileType) lipgloss.Color {
 	switch tile {
+	case town.TileNPC:
+		return lipgloss.Color("#FF6B6B")
 	case town.TileGrass:
 		return lipgloss.Color("#78C850")
 	case town.TilePath:
