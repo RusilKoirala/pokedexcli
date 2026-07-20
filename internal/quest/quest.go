@@ -234,7 +234,7 @@ func (qm *QuestManager) OnDefeatTrainer(trainerID string) []string {
 
 // UnlockQuest gives the player ONE quest from this NPC.
 // Rules:
-//   - If the player already has any active quest → do nothing (busy)
+//   - If the player already has any active quest = do nothing (busy)
 //   - Otherwise unlock only the FIRST locked quest this NPC has
 func (qm *QuestManager) UnlockQuest(npcID string) []string {
 	// Block if player is already on a quest (from any NPC)
