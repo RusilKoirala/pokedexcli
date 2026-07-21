@@ -50,3 +50,23 @@ pokedexcli/
 ├── scripts/
 └── website/
 ```
+
+
+## Tech Stack 
+
+- Go
+- lipgloss for styling 
+- Bubbletea for ui
+- image2ascii 
+
+- html, css ,js to make website
+- cloudinary for hosting video in website
+
+
+## Ai usage note
+
+I used ai to mostly debug the code. I also used ai to write logic when i got stuck (like i used to ask how to do it?)! It used to explain and I will write code and the ai will tell me how can I fix it
+
+Other all things are done by me
+
+## Thank you so much for reading this readme, I really appreciate it :D

@@ -168,10 +168,10 @@ func (b *Battle) calculateDamageWithType(attacker, defender *BattlePokemon, move
 		totalEffectiveness *= GetTypeEffectiveness(move.Type, defType)
 	}
 
-	// Apply effectiveness
+	// aapply effectiveness
 	damage := int(float64(baseDamage) * totalEffectiveness)
 
-	// Randomness (85%-100%)
+	// randomness (85%-100%)
 	randomFactor := 0.85 + (rand.Float64() * 0.15)
 	damage = int(float64(damage) * randomFactor)
 

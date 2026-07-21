@@ -5,6 +5,9 @@ import (
 	"time"
 )
 
+/*
+so this files contains the dialoge and the module for those dialogues :D
+*/
 type DialogueState int
 
 const (
@@ -40,7 +43,7 @@ func NewDialogueBox(speakerName string, lines []string) *DialogueBox {
 	}
 }
 
-// Update advances the typing animation
+// update advances the typing animation
 func (d *DialogueBox) Update() bool {
 	if d.State != DialogueTyping {
 		return false
@@ -59,15 +62,13 @@ func (d *DialogueBox) Update() bool {
 		return true
 	}
 
-	// Finished typing current line
 	d.State = DialogueWaiting
 	return true
 }
 
-// NextLine advances to the next dialogue line
 func (d *DialogueBox) NextLine() bool {
 	if d.State == DialogueTyping {
-		// Skip typing animation, show full text
+
 		d.DisplayedText = d.FullText
 		d.CharIndex = len(d.FullText)
 		d.State = DialogueWaiting
@@ -83,22 +84,19 @@ func (d *DialogueBox) NextLine() bool {
 		return true
 	}
 
-	// Dialogue complete
 	d.State = DialogueComplete
 	return false
 }
 
-// IsComplete returns true if all dialogue is shown
 func (d *DialogueBox) IsComplete() bool {
 	return d.State == DialogueComplete
 }
 
-// GetDisplayText returns the currently displayed text with word wrap
+// the currently displayed texttt
 func (d *DialogueBox) GetDisplayText(maxWidth int) []string {
 	return WrapText(d.DisplayedText, maxWidth)
 }
 
-// WrapText wraps text to fit within maxWidth
 func WrapText(text string, maxWidth int) []string {
 	if maxWidth <= 0 {
 		return []string{text}
@@ -136,7 +134,7 @@ func WrapText(text string, maxWidth int) []string {
 	return lines
 }
 
-// GetProgress returns a visual indicator of dialogue progress
+// shows the progress DUHH
 func (d *DialogueBox) GetProgress() string {
 	if d.State == DialogueWaiting {
 		return "▼"

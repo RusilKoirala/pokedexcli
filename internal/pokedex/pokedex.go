@@ -25,7 +25,7 @@ func New() *Pokedex {
 // catch a pokemon - always succeeds (game logic handles catch rate)
 func (p *Pokedex) Catch(name string) bool {
 	if _, exists := p.Pokemon[name]; exists {
-		return false // Already caught
+		return false
 	}
 
 	p.Pokemon[name] = CaughtPokemon{
