@@ -2,17 +2,20 @@
 
 Pokedexcli is a tui game that lives in your terminal. You can just run it using a simple command like `pokedexcli`. It is a small pokemon that is small and fun to play
 
+![main](/screenshots/1.png)
+
 ## Motivation
 
 I really wanted to make a game with help of Go. Yess GO (aka golang), it is used mostly for making api and concurrent server, apps like docker etc but its really good for making cli and tui apps. So I combined pokemon and tui to make this game! 
 
+![second](/screenshots/2.png)
 :D
 
 ## What I learned 
 
 I understood alot about bubbletea and lipgloss. I understood alot about ui rendering. About game logic design and level desgin. I understood about ascii and how to turn that into game. It was really fun exploring and understanding this things.
 
-
+![third](/screenshots/3.png)
 
 ## What this project does
 
@@ -24,6 +27,7 @@ I understood alot about bubbletea and lipgloss. I understood alot about ui rende
 
 - User data are saved automatically 
 
+![fourth](/screenshots/4.png)
 
 ## Folder structure 
 
@@ -68,5 +72,5 @@ pokedexcli/
 I used ai to mostly debug the code. I also used ai to write logic when i got stuck (like i used to ask how to do it?)! It used to explain and I will write code and the ai will tell me how can I fix it
 
 Other all things are done by me
-
+ 
 ## Thank you so much for reading this readme, I really appreciate it :D
