@@ -69,7 +69,7 @@ pokedexcli/
 
 ## Ai usage note
 
-I used ai to mostly debug the code. I also used ai to write logic when i got stuck (like i used to ask how to do it?)! It used to explain and I will write code and the ai will tell me how can I fix it
+I used ai to mostly debug the code. I also used ai to write logic when i got stuck (like i used to ask how to do it?)! Then from the instruction derive my logc. If I get stuck I would ask for hints
 
 Other all things are done by me
  
