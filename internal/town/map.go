@@ -108,6 +108,10 @@ func GetMap(locationID int) *WorldMap {
 
 	return &maps[locationID]
 }
+
+/*
+Btw i told ai to generate the maps basic structure and modify them myself to be more good. I hope u understand it
+*/
 func PalletTownMap() WorldMap {
 	mapArt := `
 ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■

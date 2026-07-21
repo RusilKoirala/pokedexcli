@@ -103,7 +103,7 @@ func NewModel() Model {
 	npcMgr := npc.InitializeNPCs()
 	questMgr, _ := quest.Load()
 
-	// always start with the start screen
+	// always start with the start screen cuz why not
 	initialView := startView
 
 	return Model{
