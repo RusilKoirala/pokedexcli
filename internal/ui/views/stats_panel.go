@@ -32,19 +32,15 @@ var (
 func RenderStatsPanel(p *player.Player, qm *quest.QuestManager) string {
 	var s strings.Builder
 
-	// Title
 	s.WriteString(statsTitleStyle.Render("═ TRAINER ═") + "\n\n")
 
-	// Player info
 	s.WriteString(statsTextStyle.Render(fmt.Sprintf("Name: %s", p.Name)) + "\n")
 	s.WriteString(statsTextStyle.Render(fmt.Sprintf("Level: %d", p.Level)) + "\n\n")
 
-	// XP bar
 	xpText := fmt.Sprintf("XP: %d/%d", p.XP, p.XPToNextLevel)
 	s.WriteString(statsTextStyle.Render(xpText) + "\n")
 	s.WriteString(statsXPBarStyle.Render(p.GetXPBar(18)) + "\n\n")
 
-	// Starter
 	if p.HasStarter {
 		s.WriteString(statsTitleStyle.Render("═ PARTNER ═") + "\n")
 		s.WriteString(statsTextStyle.Render(fmt.Sprintf("⚡ %s", p.StarterPokemon)) + "\n\n")
@@ -56,10 +52,9 @@ func RenderStatsPanel(p *player.Player, qm *quest.QuestManager) string {
 		s.WriteString(questInfo)
 	}
 
-	// Spacing
 	s.WriteString("\n\n")
 
-	// Controls
+	// coontrols
 	s.WriteString(statsTitleStyle.Render("═ CONTROLS ═") + "\n\n")
 	s.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#8B9798")).Render("WASD: Move") + "\n")
 	s.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#8B9798")).Render("E: Talk") + "\n")

@@ -48,6 +48,7 @@ type errorMsg struct {
 
 type tickMsg time.Time
 
+/// for dialogue text animation thing
 func dialogueTick() tea.Cmd {
 	return tea.Tick(30*time.Millisecond, func(t time.Time) tea.Msg {
 		return dialogueTickMsg(t)
@@ -81,7 +82,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.currentView == overworldView {
 				return m.handleMove(0, -1)
 			}
-			// existing up movement for menus
 			switch m.currentView {
 			case pokemonSelectView:
 				if m.cursor > 0 {
@@ -95,7 +95,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "s", "down":
 			if m.currentView == starterSelectionView {
-				if m.cursor < 2 { // 3 starters (0,1,2)
+				if m.cursor < 2 {
 					m.cursor++
 				}
 				return m, nil
@@ -103,7 +103,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.currentView == overworldView {
 				return m.handleMove(0, 1)
 			}
-			// existing down movement for menus
 			switch m.currentView {
 			case startView:
 				if m.cursor < 2 {
@@ -131,7 +130,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.currentView == overworldView {
 				return m.handleMove(-1, 0)
 			}
-			// existing left movement for battle
 			if m.currentView == battleView {
 				if m.selectedMoveIndex > 0 {
 					m.selectedMoveIndex--
@@ -142,7 +140,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.currentView == overworldView {
 				return m.handleMove(1, 0)
 			}
-			// existing right movement for battle
 			if m.currentView == battleView && m.currentBattle != nil {
 				maxMoves := len(m.currentBattle.PlayerPokemon.Moves) - 1
 				if m.selectedMoveIndex < maxMoves {
@@ -159,7 +156,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			if m.currentView == exploreView {
-				// Check if player can access this location
 				if !locations.CanAccess(m.cursor, m.player.Level) {
 					req := locations.GetRequirement(m.cursor)
 					m.message = fmt.Sprintf("🔒 You need Level %d to enter %s!", req.RequiredLevel, req.Name)
@@ -218,7 +214,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						trainer := m.npcManager.NPCs[m.activeTrainerID]
 						pokemonID := trainer.PokemonID
 						if pokemonID == 0 {
-							pokemonID = 10 // Caterpie
+							pokemonID = 10
 						}
 						m.currentView = encounterView
 						m.encounterState = appearing
@@ -244,7 +240,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m.handleRun()
 			} else if m.currentView == battleView {
 				m.message = "You ran away!"
-				m.currentView = overworldView // Return to overworld instead of exploreView
+				m.currentView = overworldView
 				m.currentBattle = nil
 			}
 
@@ -317,7 +313,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.message = "You lost the battle!"
 			}
 
-			// Check level quests if player leveled up during battle
 			levelQuests := m.questManager.OnLevelUp(m.player.Level)
 			if len(levelQuests) > 0 {
 				completedQuests = append(completedQuests, levelQuests...)
@@ -340,6 +335,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// talk to npc in direction
 func (m Model) handleTalkToNPC() (tea.Model, tea.Cmd) {
 	if m.currentMap == nil {
 		return m, nil
@@ -361,7 +357,6 @@ func (m Model) handleTalkToNPC() (tea.Model, tea.Cmd) {
 			m.currentDialogue = dialogue.NewDialogueBox(npcFound.Name, npcFound.Dialogue)
 			m.dialogueActive = true
 
-			// Unlock any quests this NPC gives (first time talking to them)
 			newQuests := m.questManager.UnlockQuest(npcFound.ID)
 			if len(newQuests) > 0 {
 				m.questManager.Save()
@@ -387,8 +382,7 @@ func (m Model) handleEnter() (tea.Model, tea.Cmd) {
 	switch m.currentView {
 	case startView:
 		switch m.cursor {
-		case 0: // Play
-			// Check if player has starter
+		case 0:
 			if !m.player.HasStarter {
 				m.currentView = starterSelectionView
 				m.cursor = 0
@@ -474,13 +468,13 @@ func (m Model) handleBack() (tea.Model, tea.Cmd) {
 		m.currentMap = nil
 
 	case battleView:
-		m.currentView = overworldView // Return to overworld instead of exploreView
+		m.currentView = overworldView
 		m.currentBattle = nil
 		m.activeTrainerID = ""
 
 	case encounterView:
 		if m.encounterState == caught || m.encounterState == escaped {
-			m.currentView = overworldView // Return to overworld instead of exploreView
+			m.currentView = overworldView
 			m.encounterState = appearing
 			m.activeTrainerID = ""
 		}
@@ -559,6 +553,7 @@ func (m Model) loadEncounter(pokemonID int) tea.Cmd {
 	}
 }
 
+// calculate catch rate based on pokedex
 func (m Model) calculateCatchRate() float64 {
 	baseCatchRate := 0.4
 	dexBonus := float64(m.pokedex.Count()) * 0.01
@@ -571,8 +566,8 @@ func (m Model) calculateCatchRate() float64 {
 	return total
 }
 
+// run away from encounter
 func (m Model) handleRun() (tea.Model, tea.Cmd) {
-	// Immediately return to overworld, no message screen
 	m.currentView = overworldView
 	m.encounterState = appearing
 	m.activeTrainerID = ""
@@ -608,28 +603,23 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 			m.pokedex.Catch(m.encounterPokemon.Name)
 			m.pokedex.Save()
 
-			// Update quest progress for catches
 			completedQuests := m.questManager.OnCatchPokemon()
 			m.questManager.Save()
 
-			// Give XP for catching
 			xp := player.GetXPForAction("catch")
 			leveledUp := m.player.GainXP(xp)
 			m.player.Save()
 
-			// Build message
 			msg := fmt.Sprintf("Gotcha! %s was caught! +%d XP!", m.encounterPokemon.Name, xp)
 
 			if leveledUp {
 				msg = fmt.Sprintf("%s Level up! Now Level %d!", msg, m.player.Level)
 
-				// Check level quests
 				levelQuests := m.questManager.OnLevelUp(m.player.Level)
 				completedQuests = append(completedQuests, levelQuests...)
 				m.questManager.Save()
 			}
 
-			// Add quest completion messages
 			for _, questTitle := range completedQuests {
 				msg = fmt.Sprintf("%s\n✓ Quest Complete: %s!", msg, questTitle)
 			}
@@ -644,7 +634,7 @@ func (m Model) handleTick() (tea.Model, tea.Cmd) {
 
 	case escaped:
 		time.Sleep(2 * time.Second)
-		m.currentView = overworldView // Return to overworld instead of exploreView
+		m.currentView = overworldView
 		m.encounterState = appearing
 		return m, nil
 	}
@@ -662,11 +652,10 @@ func (m Model) handleExplore() (tea.Model, tea.Cmd) {
 	return m, m.loadEncounter(pokemonID)
 }
 
-// Fetch moves from API
+//// Fetch moves from API
 func (m Model) loadMovesForPokemon(pokemon *pokeapi.Pokemon) []*battle.Move {
 	moves := []*battle.Move{}
 
-	// Take first 4 moves from pokemon
 	maxMoves := 4
 	if len(pokemon.Moves) < maxMoves {
 		maxMoves = len(pokemon.Moves)
@@ -675,7 +664,6 @@ func (m Model) loadMovesForPokemon(pokemon *pokeapi.Pokemon) []*battle.Move {
 	for i := 0; i < maxMoves; i++ {
 		moveName := pokemon.Moves[i].Move.Name
 
-		// Fetch move details from API
 		move, err := m.api.GetMove(moveName)
 		if err == nil && move.Power > 0 {
 			battleMove := battle.NewMove(
@@ -689,7 +677,6 @@ func (m Model) loadMovesForPokemon(pokemon *pokeapi.Pokemon) []*battle.Move {
 		}
 	}
 
-	// If no moves found, use defaults
 	if len(moves) == 0 {
 		moves = battle.GetDefaultMoves()
 	}
@@ -714,7 +701,6 @@ func (m Model) loadPlayerPokemonForBattle(name string) tea.Cmd {
 			enemySprite, _ = m.api.DownloadSprite(m.encounterPokemon.Sprites.FrontDefault)
 		}
 
-		// Load moves for both Pokemon
 		playerMoves := m.loadMovesForPokemon(playerPokemon)
 		enemyMoves := m.loadMovesForPokemon(m.encounterPokemon)
 
@@ -736,11 +722,9 @@ func (m Model) executeBattleAttack() tea.Cmd {
 			}
 		}
 
-		// Player attack with selected move
 		playerMsg := m.currentBattle.PlayerAttack(m.selectedMoveIndex)
 
 		if m.currentBattle.IsOver {
-			// Give XP based on win/lose
 			var xp int
 			if m.currentBattle.PlayerWon {
 				xp = player.GetXPForAction("battle_win")
@@ -762,7 +746,6 @@ func (m Model) executeBattleAttack() tea.Cmd {
 			}
 		}
 
-		// Enemy attack
 		enemyMsg := m.currentBattle.EnemyAttack()
 
 		return battleActionMsg{
@@ -785,11 +768,9 @@ func (m Model) executeBattleCatch() tea.Cmd {
 			m.pokedex.Catch(m.encounterPokemon.Name)
 			m.pokedex.Save()
 
-			// Update quest progress
 			completedQuests := m.questManager.OnCatchPokemon()
 			m.questManager.Save()
 
-			// Give XP for catching in battle
 			xp := player.GetXPForAction("catch")
 			leveledUp := m.player.GainXP(xp)
 			m.player.Save()
@@ -802,13 +783,11 @@ func (m Model) executeBattleCatch() tea.Cmd {
 			if leveledUp {
 				msg = fmt.Sprintf("%s Level up! Now Level %d!", msg, m.player.Level)
 
-				// Check level quests
 				levelQuests := m.questManager.OnLevelUp(m.player.Level)
 				completedQuests = append(completedQuests, levelQuests...)
 				m.questManager.Save()
 			}
 
-			// Add quest completions
 			for _, questTitle := range completedQuests {
 				msg = fmt.Sprintf("%s\n✓ Quest Complete: %s!", msg, questTitle)
 			}
@@ -831,7 +810,7 @@ func (m Model) handleBattleAction() (tea.Model, tea.Cmd) {
 	return m, m.executeBattleAttack()
 }
 
-// move playerr
+/// move player aroundd
 func (m Model) handleMove(dx, dy int) (tea.Model, tea.Cmd) {
 	if m.currentMap == nil {
 		return m, nil
@@ -840,12 +819,10 @@ func (m Model) handleMove(dx, dy int) (tea.Model, tea.Cmd) {
 	newX := m.playerX + dx
 	newY := m.playerY + dy
 
-	// check if npc there
 	if m.npcManager.IsNPCPosition(newX, newY, m.currentLocation) {
 		return m, nil
 	}
 
-	// check if movement valid
 	if m.currentMap.IsWalkable(newX, newY) {
 		m.playerX = newX
 		m.playerY = newY
@@ -879,14 +856,13 @@ func (m Model) handleMove(dx, dy int) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// trigger encounterr
+// trigger random encounter
 func (m Model) triggerWildEncounter() (tea.Model, tea.Cmd) {
 
 	if m.currentMap == nil {
 		return m, nil
 	}
 
-	//get random pokemon on basis of map
 	pokemonID := rand.Intn(m.currentMap.MaxPokemonID-m.currentMap.MinPokemonID+1) + m.currentMap.MinPokemonID
 
 	m.currentView = encounterView
@@ -898,7 +874,6 @@ func (m Model) triggerWildEncounter() (tea.Model, tea.Cmd) {
 
 // handleStarterSelection processes starter choice
 func (m Model) handleStarterSelection() (tea.Model, tea.Cmd) {
-	// Import views package to access Starters
 	starter := []struct {
 		Name string
 	}{
@@ -907,11 +882,9 @@ func (m Model) handleStarterSelection() (tea.Model, tea.Cmd) {
 		{"Squirtle"},
 	}[m.cursor]
 
-	// Set the starter
 	m.player.SetStarter(starter.Name)
 	m.player.Save()
 
-	// Add starter to Pokedex!
 	m.pokedex.Catch(starter.Name)
 	m.pokedex.Save()
 

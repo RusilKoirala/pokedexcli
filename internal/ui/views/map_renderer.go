@@ -17,7 +17,7 @@ var (
 		Padding(1, 2)
 )
 
-// RenderMap renders the game map with NO duplicates, fixed size
+// render the freaking map
 func RenderMap(worldMap *town.WorldMap, playerX, playerY int, npcMgr *npc.NPCManager, locationID int) string {
 	if worldMap == nil {
 		return mapBorderStyle.
@@ -28,7 +28,6 @@ func RenderMap(worldMap *town.WorldMap, playerX, playerY int, npcMgr *npc.NPCMan
 
 	var mapContent strings.Builder
 
-	// Get NPCs for current location
 	npcsHere := npcMgr.GetNPCsForLocation(locationID)
 	npcPositions := make(map[string]bool)
 	trainerPositions := make(map[string]bool)
@@ -41,7 +40,6 @@ func RenderMap(worldMap *town.WorldMap, playerX, playerY int, npcMgr *npc.NPCMan
 		}
 	}
 
-	// Render ONLY actual tiles - NO SPACING, NO DUPLICATES
 	for y := 0; y < worldMap.Height; y++ {
 		rowWidth := len(worldMap.Tiles[y])
 
@@ -52,18 +50,18 @@ func RenderMap(worldMap *town.WorldMap, playerX, playerY int, npcMgr *npc.NPCMan
 			var color lipgloss.Color
 
 			if x == playerX && y == playerY {
-				// Player sprite
+
 				char = "⚙"
 				color = lipgloss.Color("#FFE66D")
 			} else if npcPositions[key] {
-				// NPC sprite
+
 				char = "Φ"
 				color = lipgloss.Color("#FF6B6B")
 			} else if trainerPositions[key] {
 				char = "!"
 				color = lipgloss.Color("#FF0000")
 			} else {
-				// Regular tile
+
 				tile := worldMap.Tiles[y][x]
 				char = string(tile)
 				color = GetTileColor(tile)
@@ -78,39 +76,37 @@ func RenderMap(worldMap *town.WorldMap, playerX, playerY int, npcMgr *npc.NPCMan
 		}
 	}
 
-	// Fixed size with border and padding
 	return mapBorderStyle.
 		Width(layout.GameWidth).
 		Height(layout.GameHeight).
 		Render(mapContent.String())
 }
 
-// GetTileColor returns color for each tile type
 func GetTileColor(tile town.TileType) lipgloss.Color {
 	switch tile {
 	case town.TileGrass:
-		return lipgloss.Color("#78C850") // Green
+		return lipgloss.Color("#78C850")
 	case town.TilePath:
-		return lipgloss.Color("#8B9798") // Gray
+		return lipgloss.Color("#8B9798")
 	case town.TileTree:
-		return lipgloss.Color("#2D5016") // Dark green
+		return lipgloss.Color("#2D5016")
 	case town.TileWater:
-		return lipgloss.Color("#6890F0") // Blue
+		return lipgloss.Color("#6890F0")
 	case town.TileBuilding:
-		return lipgloss.Color("#705848") // Brown
+		return lipgloss.Color("#705848")
 	case town.TileHouse:
-		return lipgloss.Color("#FF6B6B") // Red
+		return lipgloss.Color("#FF6B6B")
 	case town.TileCave:
-		return lipgloss.Color("#4A4A4A") // Dark gray
+		return lipgloss.Color("#4A4A4A")
 	case town.TileSign:
-		return lipgloss.Color("#FFE66D") // Yellow
+		return lipgloss.Color("#FFE66D")
 	case town.TileFlower:
-		return lipgloss.Color("#EE99AC") // Pink
+		return lipgloss.Color("#EE99AC")
 	case town.TileFence:
-		return lipgloss.Color("#8B4513") // Brown
+		return lipgloss.Color("#8B4513")
 	case town.TileNPC:
-		return lipgloss.Color("#FF6B6B") // Red
+		return lipgloss.Color("#FF6B6B")
 	default:
-		return lipgloss.Color("#F7F7F7") // White
+		return lipgloss.Color("#F7F7F7")
 	}
 }

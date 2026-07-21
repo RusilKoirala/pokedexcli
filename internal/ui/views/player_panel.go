@@ -10,43 +10,40 @@ import (
 
 var (
 	panelStyle = lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#4ECDC4")).
-		Padding(1, 2)
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("#4ECDC4")).
+			Padding(1, 2)
 
 	panelTitleStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FFE66D")).
-		Bold(true).
-		Align(lipgloss.Center)
+			Foreground(lipgloss.Color("#FFE66D")).
+			Bold(true).
+			Align(lipgloss.Center)
 
 	panelTextStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#F7F7F7"))
+			Foreground(lipgloss.Color("#F7F7F7"))
 
 	xpBarStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#95E1D3"))
+			Foreground(lipgloss.Color("#95E1D3"))
 )
 
 func RenderPlayerPanel(p *player.Player, width int) string {
 	var s strings.Builder
 
-	// Title
 	s.WriteString(panelTitleStyle.Render("TRAINER INFO"))
 	s.WriteString("\n\n")
 
-	// Player name and level
 	s.WriteString(panelTextStyle.Render(fmt.Sprintf("Trainer: %s", p.Name)))
 	s.WriteString("\n")
 	s.WriteString(panelTextStyle.Render(fmt.Sprintf("Level: %d", p.Level)))
 	s.WriteString("\n\n")
 
-	// XP bar
+	// Xp bar to show stat (yes stat ;)
 	xpText := fmt.Sprintf("XP: %d/%d", p.XP, p.XPToNextLevel)
 	s.WriteString(panelTextStyle.Render(xpText))
 	s.WriteString("\n")
 	s.WriteString(xpBarStyle.Render(p.GetXPBar(width - 6)))
 	s.WriteString("\n\n")
 
-	// Starter Pokémon
 	if p.HasStarter {
 		s.WriteString(panelTitleStyle.Render("PARTNER"))
 		s.WriteString("\n")

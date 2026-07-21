@@ -8,20 +8,20 @@ import (
 
 var (
 	starterBoxStyle = lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#FFE66D")).
-		Padding(1, 2).
-		Width(40)
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("#FFE66D")).
+			Padding(1, 2).
+			Width(40)
 
 	selectedStarterStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#1A1A2E")).
-		Background(lipgloss.Color("#FFE66D")).
-		Bold(true).
-		Padding(0, 2)
+				Foreground(lipgloss.Color("#1A1A2E")).
+				Background(lipgloss.Color("#FFE66D")).
+				Bold(true).
+				Padding(0, 2)
 
 	normalStarterStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#F7F7F7")).
-		Padding(0, 2)
+				Foreground(lipgloss.Color("#F7F7F7")).
+				Padding(0, 2)
 )
 
 type StarterChoice struct {
@@ -55,7 +55,6 @@ var Starters = []StarterChoice{
 func RenderStarterSelection(cursor int, width, height int) string {
 	var s strings.Builder
 
-	// Title
 	title := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("#FFE66D")).
@@ -65,7 +64,6 @@ func RenderStarterSelection(cursor int, width, height int) string {
 
 	s.WriteString(title + "\n\n")
 
-	// Dialogue
 	dialogue := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#F7F7F7")).
 		Italic(true).
@@ -75,26 +73,24 @@ func RenderStarterSelection(cursor int, width, height int) string {
 
 	s.WriteString(dialogue + "\n\n")
 
-	// Starter choices
 	for i, starter := range Starters {
 		var line string
-		
+
 		starterText := starter.Name + " (" + starter.Type + ")"
-		
+
 		if i == cursor {
 			line = selectedStarterStyle.Render("▸ " + starterText)
 		} else {
 			line = normalStarterStyle.Render("  " + starterText)
 		}
-		
+
 		centered := lipgloss.NewStyle().
 			Align(lipgloss.Center).
 			Width(width).
 			Render(line)
-		
+
 		s.WriteString(centered + "\n")
-		
-		// Show description for selected
+
 		if i == cursor {
 			desc := lipgloss.NewStyle().
 				Foreground(lipgloss.Color("#8B9798")).
@@ -104,11 +100,10 @@ func RenderStarterSelection(cursor int, width, height int) string {
 				Render(starter.Description)
 			s.WriteString(desc + "\n")
 		}
-		
+
 		s.WriteString("\n")
 	}
 
-	// Controls
 	controls := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#8B9798")).
 		Italic(true).

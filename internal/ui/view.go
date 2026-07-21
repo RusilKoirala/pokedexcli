@@ -14,26 +14,23 @@ import (
 )
 
 var (
-	// Color palette - Pokemon inspired but professional
-	primaryColor   = lipgloss.Color("#FF6B6B") // Pokemon Red
-	secondaryColor = lipgloss.Color("#4ECDC4") // Cyan/Blue
-	accentColor    = lipgloss.Color("#FFE66D") // Yellow
-	successColor   = lipgloss.Color("#95E1D3") // Mint green
-	textColor      = lipgloss.Color("#F7F7F7") // Off-white
-	mutedColor     = lipgloss.Color("#8B9798") // Gray
-	bgDark         = lipgloss.Color("#1A1A2E") // Dark bg
-	bgLight        = lipgloss.Color("#16213E") // Light bg
+	primaryColor   = lipgloss.Color("#FF6B6B")
+	secondaryColor = lipgloss.Color("#4ECDC4")
+	accentColor    = lipgloss.Color("#FFE66D")
+	successColor   = lipgloss.Color("#95E1D3")
+	textColor      = lipgloss.Color("#F7F7F7")
+	mutedColor     = lipgloss.Color("#8B9798")
+	bgDark         = lipgloss.Color("#1A1A2E")
+	bgLight        = lipgloss.Color("#16213E")
 
-	// Title styles
 	titleStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(accentColor).
-			Border(lipgloss.DoubleBorder(), true).
-			BorderForeground(primaryColor).
-			Padding(0, 2).
-			MarginBottom(1)
+		Bold(true).
+		Foreground(accentColor).
+		Border(lipgloss.DoubleBorder(), true).
+		BorderForeground(primaryColor).
+		Padding(0, 2).
+		MarginBottom(1)
 
-	// Menu item styles
 	menuItemStyle = lipgloss.NewStyle().
 			Foreground(textColor).
 			PaddingLeft(4).
@@ -48,13 +45,11 @@ var (
 			PaddingRight(2).
 			MarginBottom(1)
 
-	// Help text
 	helpStyle = lipgloss.NewStyle().
 			Foreground(mutedColor).
 			Italic(true).
 			MarginTop(1)
 
-	// Box styles
 	boxStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(secondaryColor).
@@ -67,7 +62,6 @@ var (
 			Padding(1, 2).
 			Align(lipgloss.Left)
 
-	// Status styles
 	successStyle = lipgloss.NewStyle().
 			Foreground(successColor).
 			Bold(true)
@@ -76,7 +70,6 @@ var (
 			Foreground(primaryColor).
 			Bold(true)
 
-	// Type colors
 	typeColors = map[string]string{
 		"normal":   "#A8A878",
 		"fire":     "#F08030",
@@ -99,6 +92,7 @@ var (
 	}
 )
 
+/// convert image to ascii for sprite display
 func convertImageToASCII(img image.Image) string {
 	if img == nil {
 		return "No sprite available"
@@ -148,7 +142,7 @@ func (m Model) View() string {
 	case listView:
 		content = m.renderList()
 	case overworldView:
-		content = m.renderFixedLayout() // NEW: Fixed layout for overworld
+		content = m.renderFixedLayout()
 	case detailView:
 		content = m.renderDetail()
 	case myPokedexView:
@@ -170,14 +164,13 @@ func (m Model) View() string {
 			Render("» "+m.message)
 	}
 
-	// Center all content
 	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, content)
 }
 
+// render main start screen
 func (m Model) renderStartScreen() string {
 	var s strings.Builder
 
-	// Clean ASCII Art Title
 	asciiTitle := `
 ╔═══════════════════════════════════════════════════╗
 ║                                                   ║
@@ -210,7 +203,6 @@ func (m Model) renderStartScreen() string {
 
 	s.WriteString(subtitle + "\n\n")
 
-	// Clean menu options
 	options := []string{
 		"Play",
 		"Credits",
@@ -455,6 +447,7 @@ func (m Model) renderMyPokedex() string {
 	return s.String()
 }
 
+//// render explore with location requirements
 func (m Model) renderExplore() string {
 	var s strings.Builder
 
@@ -467,7 +460,6 @@ func (m Model) renderExplore() string {
 
 	s.WriteString(title + "\n\n")
 
-	// list locations with level requirements
 	for i := 0; i < locations.GetLocationCount(); i++ {
 		location := locations.GetLocation(i)
 		req := locations.GetRequirement(i)
@@ -539,7 +531,6 @@ func (m Model) renderEncounter() string {
 			s.WriteString(convertImageToASCII(m.encounterSprite) + "\n")
 		}
 
-		// Pokemon info line
 		infoLine := fmt.Sprintf("#%03d", m.encounterPokemon.ID)
 		for i, t := range m.encounterPokemon.Types {
 			color := typeColors[t.Type.Name]
@@ -802,11 +793,10 @@ func (m Model) renderMoveBoxes() string {
 	return "\n" + movesRow + "\n\n" + help
 }
 
-// renderFixedLayout renders the FIXED LAYOUT with game, stats, and dialogue
+// renderFixedLayout renders the FIXED LAYOUT with game stats and dialogue
 func (m Model) renderFixedLayout() string {
 	var screen strings.Builder
 
-	// Top row: Location name centered
 	locationName := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(accentColor).
@@ -816,7 +806,6 @@ func (m Model) renderFixedLayout() string {
 
 	screen.WriteString(locationName + "\n\n")
 
-	// Middle row: Game area (left) + Stats panel (right)
 	gameArea := views.RenderMap(m.currentMap, m.playerX, m.playerY, m.npcManager, m.currentLocation)
 	statsPanel := views.RenderStatsPanel(m.player, m.questManager)
 
@@ -829,7 +818,6 @@ func (m Model) renderFixedLayout() string {
 
 	screen.WriteString(middleRow + "\n\n")
 
-	// Bottom row: Dialogue box
 	dialogueBox := views.RenderDialogue(m.currentDialogue)
 	screen.WriteString(dialogueBox)
 
@@ -901,7 +889,7 @@ func (m Model) renderOverworldWithPanel() string {
 	return s.String()
 }
 
-// renders map with NPCs
+/// renders map with NPCs
 func (m Model) renderMapContentWithNPCs() string {
 	var mapContent strings.Builder
 
@@ -919,13 +907,11 @@ func (m Model) renderMapContentWithNPCs() string {
 			key := fmt.Sprintf("%d,%d", x, y)
 
 			if x == m.playerX && y == m.playerY {
-				// Player sprite
 				playerStyle := lipgloss.NewStyle().
 					Foreground(accentColor).
 					Bold(true)
 				mapContent.WriteString(playerStyle.Render(string(town.TilePlayer)))
 			} else if npcPositions[key] {
-				// NPC sprite
 				npcStyle := lipgloss.NewStyle().
 					Foreground(lipgloss.Color("#FF6B6B")).
 					Bold(true)
