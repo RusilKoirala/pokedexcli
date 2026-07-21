@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PokedexCli</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="alternate icon" type="image/png" href="image.png">
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -50,9 +52,9 @@
         <h2>see it in action</h2>
         <div class="demo-device">
             <div class="demo-screen">
-                <video autoplay muted loop playsinline poster="poster.png">
-                    <source src="demo.mp4" type="video/mp4">
-                    <div class="demo-fallback">Drop your gameplay clip </div>
+                <video autoplay muted loop playsinline>
+                    <source src="https://res.cloudinary.com/zlm5ufhp/video/upload/v1784630028/Screen_Recording_2026-07-21_at_4.15.30_PM_wrznqv.mov" type="video/mp4">
+                    Your browser does not support the video tag.
                 </video>
             </div>
         </div>
@@ -92,13 +94,16 @@
         <div class="install-grid">
             <div class="install-card">
                 <p class="os">macOS/Linux</p>
-                <div class="code-box" id="codeMac">curl -sSL https://raw.githubusercontent.com/rusilkoirala/pokedexcli/main/install.sh | sh</div>
+                <div class="code-box" id="codeMac">curl -sSL https://raw.githubusercontent.com/rusilkoirala/pokedexcli/main/install.sh | sh
+pokedexcli</div>
                 <button class="copy-btn" data-target="codeMac">copy command</button>
+                <p class="run-hint">Then run: <code class="run-cmd">pokedexcli</code></p>
             </div>
             <div class="install-card">
                 <p class="os">Windows</p>
                 <a class="win-link" href="https://github.com/rusilkoirala/pokedexcli/releases/latest">download .exe</a>
                 <p class="win-note">Or run the macOS/Linux script inside WSL</p>
+                <p class="run-hint">Then run: <code class="run-cmd">pokedexcli</code></p>
             </div>
         </div>
     </section>

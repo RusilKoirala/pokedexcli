@@ -409,9 +409,10 @@ h2 {
     color:var(--src-2);
     text-align:left;
     overflow-x:auto;
-    white-space:nowrap;
+    white-space:pre-wrap;
     margin-bottom:12px;
     word-break: break-all;
+    line-height: 1.6;
   }
   .copy-btn{
     font-family:var(--mono); 
@@ -452,6 +453,22 @@ h2 {
     font-size:11px; 
     color:var(--text-dim); 
     margin-top:10px; 
+  }
+  .run-hint {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--src-1);
+  }
+  .run-cmd {
+    font-family: var(--mono);
+    font-weight: 700;
+    color: var(--src-3);
+    background: var(--src-0);
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 13px;
   }
  
  
